@@ -1,7 +1,7 @@
 endless
 =======
 
-A bi-directional infinite scroll library that works with jQuery or Zepto and supports lazy loading, element recycling and deep integration between a scrolling list and the rest of the application.
+A bi-directional infinite scroll library that works with jQuery or Zepto and supports lazy loading, element recycling and deep integration between scrolling lists and the rest of the application.
 
 Installation
 ------------
@@ -9,7 +9,7 @@ The best way is to use bower.
 ```bash
 bower install endless
 ```
-Alternately, just copy the file `endless.js` to your project. Make sure you check for updates occasionally.
+Alternately, you may copy and include the file `endless.js` to your project. Make sure you check for updates occasionally.
 
 API
 ---
