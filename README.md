@@ -3,6 +3,8 @@ endless
 
 A bi-directional infinite scroll library that works with jQuery or Zepto and supports lazy loading, element recycling and deep integration between scrolling lists and the rest of the application.
 
+**Implementation in progress, not ready for use**
+
 Installation
 ------------
 The best way is to use bower.
@@ -30,16 +32,21 @@ The container must be scrollable, and may contain the following children, identi
  - `getItem`, **mandatory**, a function that is invoked when a new item needs to be rendered. It will receive three arguments: `index`, an integer which may be positive or negative, `template`, a DOM element that may be reused, and an optional `callback`. The function may return a rendered item, `false` to indicate that the end of the list has been crossed, or `true` to indicate that the item needs to be loaded asynchronously. In the final case, the callback must be invoked with one argument: the rendered item or `false` if the list has ended.
  - `columns`, a positive integer. When greater than 1, items are displayed in a masonry-like grid.
  - `ramp`, the number of pixels above and below the viewport that should be filled with items so that users don’t see loading indications while scrolling slowly. 
- - `onScroll`, a function that is invoked when the scroll position changes. It will receive one argument, `position` which may be an integer or a string ( `"top"` or `"bottom"`). **Important**: Use this instead of attaching handlers to the container element’s `scroll` event; such handlers will be fired incorrectly when endless adds or removes elements, and may severly degrade performance due to layout thrashing.
+ - `onScroll`, a function that is invoked when the scroll position changes. It will receive one argument, `position` which may be an integer, -Infinity (top) or +Infinity (bottom). **Important**: Use this instead of attaching handlers to the container element’s `scroll` event; such handlers will be fired incorrectly when endless adds or removes elements, and may severly degrade performance due to layout thrashing.
 
 ### Methods ###
- - `$(container).scrollTo(position)` accepts an integer, `"top"` or `"bottom"`
- - `$(container).isInView(index)` returns a boolean.
- - `$(container).update(index)` notifies endless that a particular item is to be updated. An immediate call to `getItem` with that index (and the current element there) is to be expected if it is in view.
- - `$(container).updated(index)` notifies endless that an item has been updated directly on the DOM. Doing this is essential if the update changes the dimensions of the item.
- - `$(container).updateAll()` should be called items need to be inserted or removed at an index that is in view.
+These methods only work if `.endless()` has been called on the container previously.
 
+ - `$(container).scrollPos()` returns the current position: an integer index or ±Infinity
+ - `$(container).isInTree(index)` checks whether the item at a particular index is in the DOM.
+ - `$(container).isInView(index)` checks whether the item at a particular index is in view.
+ - `$(container).scrollTo(position)` scrolls to the given position.
+ - `$(container).reset(position)` Indicates that all the DOM elements need to be refreshed by calling `getItem` — this is usually done if all the items have changed (e.g. because a new data set has been selected).
+ - `$(container).update(index, changed)` tells endless that a particular item is to be updated. `changed` (boolean, default `false`) may be used to indicate that the application has already updated the item in the DOM, and endless should only reposition other items.
+ - `$(container).insert(index)` tells endless that a new item is to be inserted at the given position. Subsequent indexes are assumed to be incremented by 1.
+ - `$(container).delete(index)` tells endless that the item at the given position is to be deleted. Subsequent indexes are assumed decremented by 1.
+ - 
 ### Notes ###
 Each element is identified by its integer **index**, which can be negative, zero or positive. The first call to `getItem` during setup will get the index 0.
 
-The scroll **position** of the list may be `"top"`, `"bottom"`, or the index of the first visible item.
+The scroll **position** of the list may be the index of the first visible item, -Infinity (top) or +Infinity (bottom).
