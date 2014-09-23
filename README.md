@@ -45,7 +45,7 @@ These methods only work if `.endless()` has been called on the container previou
  - `$(container).update(index, changed)` tells endless that a particular item is to be updated. `changed` (boolean, default `false`) may be used to indicate that the application has already updated the item in the DOM, and endless should only reposition other items.
  - `$(container).insert(index)` tells endless that a new item is to be inserted at the given position. Subsequent indexes are assumed to be incremented by 1.
  - `$(container).delete(index)` tells endless that the item at the given position is to be deleted. Subsequent indexes are assumed decremented by 1.
- - 
+
 ### Notes ###
 Each element is identified by its integer **index**, which can be negative, zero or positive. The first call to `getItem` during setup will get the index 0.
 
