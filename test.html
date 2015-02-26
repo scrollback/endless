@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Endless Tester</title>
+		<style>
+			html, body { font: normal 100 13px/18px Lato; }
+			.item {
+				width: 100%;
+				font-size: 3em;
+				line-height: 1em;
+				box-sizing: border-box;
+				/* padding: 2em; */
+				white-space: nowrap;
+				text-overflow: ellipsis;
+				background: #33ccaa;
+				/*margin: 0 0 0 2%;*/
+				border: 1px solid #fff;
+				float: left;
+				text-align: center;
+			}
+			p, h1, h2 { clear: both; text-align: center; padding: 5em 0;}
+		</style>
+	</head>
+	<body>
+		<h1>There are some items below.</h1>
+		<div id='app' class='post-ctnr'></div>
+		<h2>There were some items above</h2>
+		
+		<script src="react.js"></script>
+		<script src="endless.js"></script>
+		<script>
+			function getItem(i) { return ['div', {className: 'item', style: {lineHeight: (Math.abs(i)%7+1) + 'em'}, key: i}, i<0?'('+(-i)+')': i]; }
+			
+			function getItems(start, end) {
+				var i, r=[];
+				for(i=start; i<=end; i++) r.push(getItem(i));
+				return r;
+			}
+			
+			function onScroll(key, above, below) {
+				if(key == 'bottom') key = 100;
+				else if (key == 'top') key = -100;
+				else key = parseFloat(key);
+				
+				var start = Math.floor((key - above - 5)/20)*20,
+					end = Math.ceil((key + below + 5)/20)*20;
+				
+				start = Math.max(-100, Math.min(100, start));
+				end = Math.max(-100, Math.min(100, end));
+				
+				console.log('Rendering', key, above, below, start, end);
+				
+				render({
+					items: getItems(start, end),
+					onScroll: onScroll,
+					atTop: (key - above < -100)? true: false,
+					atBottom: (key + below > 100)? true: false
+				})
+			}
+			
+			function render(props, callback) {
+				React.render(
+					React.createElement(Endless, props),
+					document.getElementById('app'),
+					callback
+				);
+			}
+			
+//			window.scrollTo(0, 999999);
+			
+			render({
+				items: getItems(-100, 50),
+				onScroll: onScroll,
+				atTop: true,
+				atBottom: false
+			}, function () {
+				window.scrollTo(0, 0);
+			});
+			
+		</script>
+	</body>
+</html>

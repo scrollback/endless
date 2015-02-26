@@ -25,7 +25,7 @@ The container must be scrollable, and may contain the following children, identi
  - `endless-above`: a (preferably) empty div used as a spacing element. Should have a background image or animation indicating that items are loading. It may be resized.
  - `endless-items`: a container for items. It may contain a template for a single item — if this is provided, `getItem` will always get an item to recycle. The template will be removed from the DOM during setup.
  - `endless-empty`: content to display when it’s known that there are no items.
- - `endless-delay`: content to display while waiting for the first item.
+ - `endless-loading`: content to display while waiting for the first item.
  - `endless-below`: The antipodal counterpart of `endless-above`.
 
 ### Options ###

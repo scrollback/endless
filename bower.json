@@ -1,0 +1,24 @@
+{
+  "name": "endless",
+  "version": "0.0.0",
+  "homepage": "https://github.com/scrollback/endless",
+  "authors": [
+    "aravind <aravindet@gmail.com>"
+  ],
+  "description": "A bi-directional infinite scroll library that works with React",
+  "main": "endless.js",
+  "keywords": [
+    "infinite scroll"
+  ],
+  "dependencies": {
+    "react": "x"
+  },
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
