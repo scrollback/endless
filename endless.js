@@ -107,7 +107,10 @@
 				position, i, offset, above, below;
 			
 			if(items.length) {
-				itemHeight = this.state.itemHeight = itemsEl.scrollHeight / items.length;
+				
+				itemHeight = this.state.itemHeight = (
+					(this.getBottom(itemEls[items.length-1]) - this.getTop(itemEls[0])) / items.length
+				) || 10;
 			}
 			
 			if(this.state.bottomReached && !this.state.bottomRemoved && viewBottom >= elBottom) {
@@ -123,7 +126,7 @@
 			} else {
 				for(i=0; i<itemEls.length; i++) {
 					offset = itemEls[i].offsetTop + itemEls[i].scrollHeight - viewTop;
-					if(offset >= 0) break; 
+					if(offset >= 0) break;
 				}
 				if(i==itemEls.length) i--;
 				
@@ -180,12 +183,8 @@
 				topAdded, topRemoved, bottomAdded, bottomRemoved;
 			
 			newMetrics = [].slice.call(this.refs.items.getDOMNode().children).map(function (itemEl) {
-				var bounds = itemEl.getBoundingClientRect();
-				return {
-					top: bounds.top, bottom: bounds.bottom, left: bounds.left, right: bounds.right,
-					width: bounds.width, height: bounds.height
-				};
-			});
+				return { top: this.getTop(itemEl), bottom: this.getBottom(itemEl) };
+			}.bind(this));
 			
 			if(newMetrics && this.metrics && items.length && prevItems.length) {
 				for(i=0; i<items.length && items[i].key != prevItems[0].key; i++);
@@ -208,8 +207,8 @@
 				});
 			}
 			
-			console.log('Rendered', items[0].key, 'through', items[items.length-1].key,
-						'Removed space ', this.state.topRemoved, this.state.bottomRemoved);
+//			console.log('Rendered', items[0].key, 'through', items[items.length-1].key,
+//						'Removed space ', this.state.topRemoved, this.state.bottomRemoved);
 			this.metrics = newMetrics;
 
 			
@@ -236,6 +235,14 @@
 				this.lastState.jumpToIndex = newIndex;
 			}
 			
+		},
+		
+		getTop: function (el) {
+			return el.getBoundingClientRect().top - parseFloat(window.getComputedStyle(el).marginTop);
+		},		
+		
+		getBottom: function (el) {
+			return el.getBoundingClientRect().bottom + parseFloat(window.getComputedStyle(el).marginBottom);
 		},
 
 		getScrollParent: function () {
@@ -275,10 +282,10 @@
 		scrollTo: function (index, offset) {
 			var y = this.refs.items.getDOMNode().children[index].offsetTop + offset;
 			
-			console.log(
-				"scrolling from", this.getScroll(), "to", 
-				this.refs.items.getDOMNode().children[index].offsetTop, offset
-			);
+//			console.log(
+//				"scrolling from", this.getScroll(), "to", 
+//				this.refs.items.getDOMNode().children[index].offsetTop, offset
+//			);
 			this.setScroll(y);
 		},
 
