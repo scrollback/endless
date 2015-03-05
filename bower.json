@@ -1,14 +1,14 @@
 {
   "name": "endless",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "homepage": "https://github.com/scrollback/endless",
   "authors": [
     "aravind <aravindet@gmail.com>"
   ],
-  "description": "A bi-directional infinite scroll library that works with React",
+  "description": "A simple, fast and versatile infinite scroll component for React.",
   "main": "endless.js",
   "keywords": [
-    "infinite scroll"
+    "infinite scroll react"
   ],
   "dependencies": {
     "react": "x"

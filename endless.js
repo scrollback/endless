@@ -65,6 +65,8 @@
 		},
 
 		getInitialState: function() {
+			this.lastState = this.lastState ||  { jumpToIndex: null, offset: 0 };
+			
 			if (this.props.items.length) {
 				if (this.props.atTop) {
 					this.lastState.jumpToIndex = 0;
@@ -88,14 +90,7 @@
 			};
 		},
 
-		lastState: {
-			jumpToIndex: null,
-			offset: 0
-		},
-
 		update: function() {
-			this.afid = requestAnimationFrame(this.update);
-
 			if (this.lastState.jumpToIndex !== null) {
 				this.scrollTo(this.lastState.jumpToIndex, this.lastState.offset);
 				this.lastState.jumpToIndex = null;
@@ -125,7 +120,6 @@
 				above = viewHeight / itemHeight;
 				below = 0;
 			} else if (this.state.topReached && !this.state.topRemoved && viewTop <= 0) {
-				console.log('viewtop', viewTop, this.state.topRemoved, this.state.topReached);
 				position = 'top';
 				offset = 0;
 				above = 0;
@@ -152,25 +146,28 @@
 			above = Math.round(above);
 			below = Math.round(below);
 
-			if (last.position !== position || last.above != above || last.below != below) {
-
-				console.log(this.lastState, position, above, below);
-				this.lastState.position = position;
-				this.lastState.offset = offset;
-				this.lastState.above = above;
-				this.lastState.below = below;
+			if (last.position !== position || last.above !== above || last.below !== below) {
+				last.position = position;
+				last.offset = offset;
+				last.above = above;
+				last.below = below;
+				this.afid = requestAnimationFrame(this.update);
 				this.props.onScroll(position, above, below);
+			} else if(last.offset !== offset) {
+				this.afid = requestAnimationFrame(this.update);
+			} else {
+				this.stid = setTimeout(this.update, 200);
 			}
 		},
 		
 		componentDidMount: function() {
-			this.update = this.update.bind(this);
 			this.update();
 			this.props.onMount();
 		},
 
 		componentWillUnmount: function() {
 			cancelAnimationFrame(this.afid);
+			clearTimeout(this.stid);
 			this.props.onUnmount();
 		},
 
@@ -308,7 +305,7 @@
 			this.setScroll(y);
 		},
 
-		render: function() {
+		render: function() {			
 			return buildReactElement(['div', {
 					style: {
 						position: 'relative'
