@@ -56,7 +56,6 @@
 			return {
 				items: [],
 				margin: 2000,
-				threshold: 500,
 				atTop: false,
 				atBottom: false,
 				onScroll: function( /* key, above, below */ ) {},
@@ -163,8 +162,9 @@
 				this.props.onScroll(position, above, below);
 			}
 		},
-
+		
 		componentDidMount: function() {
+			this.update = this.update.bind(this);
 			this.update();
 			this.props.onMount();
 		},
