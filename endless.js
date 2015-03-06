@@ -93,6 +93,7 @@
 		update: function() {
 			if (this.lastState.jumpToIndex !== null) {
 				this.scrollTo(this.lastState.jumpToIndex, this.lastState.offset);
+				this.lastState.offset = 0;
 				this.lastState.jumpToIndex = null;
 			}
 
@@ -109,10 +110,9 @@
 
 			if (!itemEls.length) return;
 
-			itemHeight = this.state.itemHeight = (
+			itemHeight = this.state.itemHeight = Math.max(20,
 				(this.getBottom(itemEls[itemEls.length - 1]) - this.getTop(itemEls[0])) / itemEls.length
-			) || 10;
-
+			);
 
 			if (this.state.bottomReached && !this.state.bottomRemoved && viewBottom >= elBottom) {
 				position = 'bottom';
@@ -129,7 +129,7 @@
 					offset = itemEls[i].offsetTop + itemEls[i].scrollHeight - viewTop;
 					if (offset >= 0) break;
 				}
-				if (i == itemEls.length) i--;
+				if (i == itemEls.length) i--; // All the items are above the viewport; pick last one.
 
 				position = buildReactElement(items[i]).key; // building in case it is JSONML
 				if (viewTop < itemEls[0].offsetTop) {
@@ -151,6 +151,7 @@
 				last.offset = offset;
 				last.above = above;
 				last.below = below;
+								
 				this.afid = requestAnimationFrame(this.update);
 				this.props.onScroll(position, above, below);
 			} else if(last.offset !== offset) {
@@ -179,40 +180,46 @@
 		componentWillReceiveProps: function(nextProps) {
 			this.setState({
 				topReached: this.state.topReached || nextProps.atTop,
-				bottomReached: this.state.bottomReached || nextProps.atBottom
+				bottomReached: this.state.bottomReached || nextProps.atBottom,
+				topRemoved: nextProps.atTop? 0: this.state.topRemoved,
+				bottomRemoved: nextProps.atBottom? 0: this.state.bottomRemoved,
 			});
 		},
 
 		componentDidUpdate: function(prevProps) {
-			if (this.lastState.jumpToIndex !== null) return;
+//			if (this.lastState.jumpToIndex !== null) return;
 
 			var prevItems = prevProps.items.map(buildReactElement),
 				items = this.props.items.map(buildReactElement),
 				jumpRequired, newIndex = null,
-				newMetrics, i,
+				metrics, prevMetrics = this.metrics, i,
 				topAdded, topRemoved, bottomAdded, bottomRemoved;
 
 			if (!items.length || !prevItems.length) return;
 
-			newMetrics = [].slice.call(this.refs.items.getDOMNode().children).map(function(itemEl) {
+			metrics = [].slice.call(this.refs.items.getDOMNode().children).map(function(itemEl) {
 				return {
 					top: this.getTop(itemEl),
 					bottom: this.getBottom(itemEl)
 				};
 			}.bind(this));
+			
+			if(prevMetrics && prevMetrics.length !== prevItems.length) {
+				console.log("Endless Error: prevMetrics.length ≠ prevItems.length", prevMetrics.length, prevItems.length);
+			}
 
-			if (newMetrics && this.metrics && items.length && prevItems.length) {
+			if (metrics && prevMetrics && items.length && prevItems.length) {
 				for (i = 0; i < items.length && items[i].key != prevItems[0].key; i++);
-				topAdded = (i == items.length) ? 0 : newMetrics[i].top - newMetrics[0].top;
+				topAdded = (i == items.length) ? 0 : metrics[i].top - metrics[0].top;
 
 				for (i = 0; i < prevItems.length && prevItems[i].key != items[0].key; i++);
-				topRemoved = (i == prevItems.length) ? 0 : this.metrics[i].top - this.metrics[0].top;
+				topRemoved = (i == prevItems.length) ? 0 : prevMetrics[i].top - prevMetrics[0].top;
 
 				for (i = items.length - 1; i >= 0 && items[i].key != prevItems[prevItems.length - 1].key; i--);
-				bottomAdded = (i < 0) ? 0 : newMetrics[items.length - 1].bottom - newMetrics[i].bottom;
+				bottomAdded = (i < 0) ? 0 : metrics[metrics.length - 1].bottom - metrics[i].bottom;
 
 				for (i = prevItems.length - 1; i >= 0 && prevItems[i].key != items[items.length - 1].key; i--);
-				bottomRemoved = (i < 0) ? 0 : this.metrics[prevItems.length - 1].bottom - this.metrics[i].bottom;
+				bottomRemoved = (i < 0) ? 0 : prevMetrics[prevMetrics.length - 1].bottom - prevMetrics[i].bottom;
 
 				//		console.log(topRemoved, topAdded, bottomRemoved, bottomAdded);
 
@@ -224,11 +231,11 @@
 
 			//	console.log('Rendered', items[0].key, 'through', items[items.length-1].key,
 			//				'Removed space ', this.state.topRemoved, this.state.bottomRemoved);
-			this.metrics = newMetrics;
-
+			this.metrics = metrics;
 
 			if (items[0].key != prevItems[0].key) jumpRequired = true;
 			if (prevProps.topReached != this.props.topReached) jumpRequired = true;
+			if (this.lastState.position === 'bottom') jumpRequired = true;
 
 			if (jumpRequired) {
 				if (this.lastState.position == 'top') {
@@ -244,13 +251,13 @@
 					}
 
 				if (newIndex === null) {
-					newIndex = 0;
+//					newIndex = 0;
 					console.log('couldnt find ', this.lastState.position, 'in', items[0].key, items[items.length - 1].key);
+				} else {
+					this.lastState.jumpToIndex = newIndex;
 				}
 
-				this.lastState.jumpToIndex = newIndex;
 			}
-
 		},
 
 		getTop: function(el) {
@@ -278,14 +285,19 @@
 			} else if (scrollParent === window) {
 				return -el.getBoundingClientRect().top;
 			} else {
-				return scrollParent.scrollTop - el.offsetTop;
+				return scrollParent.getBoundingClientRect().top -
+					el.getBoundingClientRect().top +
+					parseFloat(window.getComputedStyle(scrollParent).borderTop);
 			}
 		},
 
 		setScroll: function(y) {
 			var scrollParent = this.getScrollParent(),
 				el = this.getDOMNode();
-			if (scrollParent != el) y += el.offsetTop;
+			if (scrollParent != el) y += (scrollParent.scrollTop - 
+					(scrollParent.getBoundingClientRect().top -
+					el.getBoundingClientRect().top +
+					parseFloat(window.getComputedStyle(scrollParent).borderTop)));
 			if (scrollParent === window) return window.scrollTo(0, y);
 			scrollParent.scrollTop = y;
 		},
@@ -320,6 +332,7 @@
 					ref: 'items'
 				}].concat(this.props.items), ['div', {
 					style: {
+						clear: 'both',
 						height: this.state.bottomRemoved + (this.state.bottomReached ? 0 : this.props.margin)
 					}
 				}]
