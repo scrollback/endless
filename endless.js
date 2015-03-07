@@ -96,34 +96,42 @@
 				this.lastState.offset = 0;
 				this.lastState.jumpToIndex = null;
 			}
-
+			
 			var items = this.props.items,
 				itemsEl = this.refs.items.getDOMNode(),
 				itemEls = itemsEl.children,
-				itemHeight = this.state.itemHeight,
+				itemHeight,
 				viewTop = this.getScroll(),
 				viewHeight = this.getViewportHeight(),
 				viewBottom = viewTop + viewHeight,
 				elBottom = this.getDOMNode().scrollHeight,
 				last = this.lastState,
-				position, i, offset, above, below;
-
-			if (!itemEls.length) return;
-
-			itemHeight = this.state.itemHeight = Math.max(20,
-				(this.getBottom(itemEls[itemEls.length - 1]) - this.getTop(itemEls[0])) / itemEls.length
-			);
-
+				position, i, offset, above, below, top, columns;
+			
+			if (!itemEls.length) {
+				this.stid = setTimeout(this.update, 200);
+				return;
+			}
+						
+			top = this.getTop(itemEls[0]);
+			
+			for(columns=1; columns<itemEls.length && this.getTop(itemEls[columns]) == top; columns++);
+			if(columns == itemEls.length) columns--;
+			
+			itemHeight = (this.getBottom(itemEls[itemEls.length - 1]) - top) / itemEls.length;
+			if(itemHeight <= 0) itemHeight = 20; // Ugly hack for handling display:none items.
+			itemHeight *= columns;
+			
 			if (this.state.bottomReached && !this.state.bottomRemoved && viewBottom >= elBottom) {
 				position = 'bottom';
 				offset = 0;
-				above = viewHeight / itemHeight;
+				above = columns * Math.ceil(viewHeight / itemHeight);
 				below = 0;
 			} else if (this.state.topReached && !this.state.topRemoved && viewTop <= 0) {
 				position = 'top';
 				offset = 0;
 				above = 0;
-				below = viewHeight / itemHeight;
+				below = columns * Math.ceil(viewHeight / itemHeight);
 			} else {
 				for (i = 0; i < itemEls.length; i++) {
 					offset = itemEls[i].offsetTop + itemEls[i].scrollHeight - viewTop;
@@ -134,13 +142,13 @@
 				position = buildReactElement(items[i]).key; // building in case it is JSONML
 				if (viewTop < itemEls[0].offsetTop) {
 					offset = viewTop - itemEls[0].offsetTop;
-					above = -offset / itemHeight;
+					above = columns * Math.ceil(-offset / itemHeight);
 				} else {
 					above = 0;
 				}
-				below = Math.max(0, Math.max(
-					viewHeight / itemHeight, (viewBottom - itemEls[itemEls.length - 1].offsetTop) / itemHeight // view far below rendered items
-				) - above);
+				below = Math.max(0, columns * Math.ceil(Math.max(
+					viewHeight, (viewBottom - itemEls[itemEls.length-1].offsetTop)
+				) / itemHeight) - above);
 			}
 
 			above = Math.round(above);
@@ -151,7 +159,7 @@
 				last.offset = offset;
 				last.above = above;
 				last.below = below;
-								
+				
 				this.afid = requestAnimationFrame(this.update);
 				this.props.onScroll(position, above, below);
 			} else if(last.offset !== offset) {
@@ -205,7 +213,8 @@
 			}.bind(this));
 			
 			if(prevMetrics && prevMetrics.length !== prevItems.length) {
-				console.log("Endless Error: prevMetrics.length ≠ prevItems.length", prevMetrics.length, prevItems.length);
+				console.log("Endless Error: prevMetrics.length ≠ prevItems.length. "+
+							"Did you modify the items array after calling setProps?", prevMetrics.length, prevItems.length);
 			}
 
 			if (metrics && prevMetrics && items.length && prevItems.length) {
@@ -240,19 +249,21 @@
 			if (jumpRequired) {
 				if (this.lastState.position == 'top') {
 					newIndex = 0;
+					this.lastState.offset = 0;
 				} else if (this.lastState.position == 'bottom') {
 					newIndex = items.length - 1;
-				} else
+					this.lastState.offset = metrics[metrics.length-1].bottom - metrics[metrics.length-1].top;
+				} else {
 					for (i = 0; i < items.length; i++) {
 						if (items[i].key == this.lastState.position) {
 							newIndex = i;
 							break;
 						}
 					}
+				}
 
 				if (newIndex === null) {
-//					newIndex = 0;
-					console.log('couldnt find ', this.lastState.position, 'in', items[0].key, items[items.length - 1].key);
+					console.log('Couldnt find ', this.lastState.position, 'in', items[0].key, '---', items[items.length - 1].key);
 				} else {
 					this.lastState.jumpToIndex = newIndex;
 				}
@@ -271,7 +282,9 @@
 		getScrollParent: function() {
 			for (var el = this.getDOMNode(); el; el = el.parentElement) {
 				var overflowY = window.getComputedStyle(el).overflowY;
-				if (overflowY === 'auto' || overflowY === 'scroll') return el;
+				if (overflowY === 'auto' || overflowY === 'scroll') {
+					return el;
+				}
 			}
 			return window;
 		},
@@ -317,7 +330,7 @@
 			this.setScroll(y);
 		},
 
-		render: function() {			
+		render: function() {
 			return buildReactElement(['div', {
 					style: {
 						position: 'relative'

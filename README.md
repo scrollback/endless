@@ -3,10 +3,13 @@ endless
 
 A simple, fast and versatile infinite scroll component for React.
 
-Supports removal and recycling of DOM elements to conserve memory, 
-bi-directional scrolling starting at the top, bottom or in the middle,
-without prior knowledge of the number of elements or their heights,
-elements with different heights, elements laid out on a grid or using masonry.
+Supports:
+- Removal and recycling of DOM elements
+- Bi-directional scrolling
+- Starting at the top, bottom or somewhere in the middle
+- Unknown total number or heights of elements
+- Elements that are different heights
+- Supports elements laid out on a grid
 
 Unlike other infinite scroll implementations, endless is intentionally simple:
 it does not decide which items to show or control the process of fetching them.
