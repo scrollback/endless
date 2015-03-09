@@ -66,7 +66,7 @@
 
 		getInitialState: function() {
 			this.lastState = this.lastState ||  { jumpToIndex: null, offset: 0 };
-			
+
 			if (this.props.items.length) {
 				if (this.props.atTop) {
 					this.lastState.jumpToIndex = 0;
@@ -96,7 +96,7 @@
 				this.lastState.offset = 0;
 				this.lastState.jumpToIndex = null;
 			}
-			
+
 			var items = this.props.items,
 				itemsEl = this.refs.items.getDOMNode(),
 				itemEls = itemsEl.children,
@@ -107,25 +107,25 @@
 				elBottom = this.getDOMNode().scrollHeight,
 				last = this.lastState,
 				position, i, offset, above, below, top, columns;
-			
+
 			if (!itemEls.length) {
 				this.stid = setTimeout(this.update, 200);
 				return;
 			}
-						
+
 			top = this.getTop(itemEls[0]);
-			
+
 			for(columns=1; columns<itemEls.length && this.getTop(itemEls[columns]) == top; columns++);
-			if(columns == itemEls.length) columns--;
-			
+
 			itemHeight = (this.getBottom(itemEls[itemEls.length - 1]) - top) / itemEls.length;
 			if(itemHeight <= 0) itemHeight = 20; // Ugly hack for handling display:none items.
 			itemHeight *= columns;
-			
+
 			if (this.state.bottomReached && !this.state.bottomRemoved && viewBottom >= elBottom) {
 				position = 'bottom';
 				offset = 0;
 				above = columns * Math.ceil(viewHeight / itemHeight);
+				if(isNaN(above)) console.log(columns, viewHeight, itemHeight);
 				below = 0;
 			} else if (this.state.topReached && !this.state.topRemoved && viewTop <= 0) {
 				position = 'top';
@@ -159,7 +159,7 @@
 				last.offset = offset;
 				last.above = above;
 				last.below = below;
-				
+
 				this.afid = requestAnimationFrame(this.update);
 				this.props.onScroll(position, above, below);
 			} else if(last.offset !== offset) {
@@ -168,7 +168,7 @@
 				this.stid = setTimeout(this.update, 200);
 			}
 		},
-		
+
 		componentDidMount: function() {
 			this.update();
 			this.props.onMount();
@@ -195,7 +195,7 @@
 		},
 
 		componentDidUpdate: function(prevProps) {
-//			if (this.lastState.jumpToIndex !== null) return;
+//		  if (this.lastState.jumpToIndex !== null) return;
 
 			var prevItems = prevProps.items.map(buildReactElement),
 				items = this.props.items.map(buildReactElement),
@@ -211,7 +211,7 @@
 					bottom: this.getBottom(itemEl)
 				};
 			}.bind(this));
-			
+
 			if(prevMetrics && prevMetrics.length !== prevItems.length) {
 				console.log("Endless Error: prevMetrics.length ≠ prevItems.length. "+
 							"Did you modify the items array after calling setProps?", prevMetrics.length, prevItems.length);
@@ -230,7 +230,7 @@
 				for (i = prevItems.length - 1; i >= 0 && prevItems[i].key != items[items.length - 1].key; i--);
 				bottomRemoved = (i < 0) ? 0 : prevMetrics[prevMetrics.length - 1].bottom - prevMetrics[i].bottom;
 
-				//		console.log(topRemoved, topAdded, bottomRemoved, bottomAdded);
+				//	  console.log(topRemoved, topAdded, bottomRemoved, bottomAdded);
 
 				this.setState({
 					topRemoved: Math.max(0, this.state.topRemoved + topRemoved - topAdded),
@@ -238,8 +238,8 @@
 				});
 			}
 
-			//	console.log('Rendered', items[0].key, 'through', items[items.length-1].key,
-			//				'Removed space ', this.state.topRemoved, this.state.bottomRemoved);
+			//  console.log('Rendered', items[0].key, 'through', items[items.length-1].key,
+			//			  'Removed space ', this.state.topRemoved, this.state.bottomRemoved);
 			this.metrics = metrics;
 
 			if (items[0].key != prevItems[0].key) jumpRequired = true;
@@ -307,7 +307,7 @@
 		setScroll: function(y) {
 			var scrollParent = this.getScrollParent(),
 				el = this.getDOMNode();
-			if (scrollParent != el) y += (scrollParent.scrollTop - 
+			if (scrollParent != el) y += (scrollParent.scrollTop -
 					(scrollParent.getBoundingClientRect().top -
 					el.getBoundingClientRect().top +
 					parseFloat(window.getComputedStyle(scrollParent).borderTop)));
@@ -323,10 +323,10 @@
 		scrollTo: function(index, offset) {
 			var y = this.refs.items.getDOMNode().children[index].offsetTop + offset;
 
-			//	console.log(
-			//		"scrolling from", this.getScroll(), "to",
-			//		this.refs.items.getDOMNode().children[index].offsetTop, offset
-			//	);
+			//  console.log(
+			//	  "scrolling from", this.getScroll(), "to",
+			//	  this.refs.items.getDOMNode().children[index].offsetTop, offset
+			//  );
 			this.setScroll(y);
 		},
 
