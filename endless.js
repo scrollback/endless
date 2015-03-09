@@ -50,6 +50,12 @@
 	var isEqual = function(a, b) {
 		return isEqualSubset(a, b) && isEqualSubset(b, a);
 	};
+	
+	var getComputedValue = function (el, propName) {
+		var value = parseFloat(window.getComputedStyle(el)[propName]);
+		if(isNaN(value)) value = 0;
+		return value;
+	};
 
 	return React.createClass({
 		getDefaultProps: function() {
@@ -148,6 +154,8 @@
 				below = Math.max(0, columns * Math.ceil(Math.max(
 					viewHeight, (viewBottom - itemEls[itemEls.length-1].offsetTop)
 				) / itemHeight) - above);
+				
+				if(isNaN(below)) console.log(viewTop, viewHeight, viewBottom);
 			}
 
 			above = Math.round(above);
@@ -158,6 +166,8 @@
 				last.offset = offset;
 				last.above = above;
 				last.below = below;
+				
+			//	console.log(position, above, below, columns);
 				
 				this.afid = requestAnimationFrame(this.update);
 				this.props.onScroll(position, above, below);
@@ -271,11 +281,11 @@
 		},
 
 		getTop: function(el) {
-			return el.getBoundingClientRect().top - parseFloat(window.getComputedStyle(el).marginTop);
+			return el.getBoundingClientRect().top - getComputedValue(el, 'marginTop');
 		},
 
 		getBottom: function(el) {
-			return el.getBoundingClientRect().bottom + parseFloat(window.getComputedStyle(el).marginBottom);
+			return el.getBoundingClientRect().bottom + getComputedValue(el, 'marginBottom');
 		},
 
 		getScrollParent: function() {
@@ -290,26 +300,29 @@
 
 		// Get scroll position relative to the top of the list.
 		getScroll: function() {
-			var scrollParent = this.getScrollParent();
-			var el = this.getDOMNode();
+			var scrollParent = this.getScrollParent(),
+				el = this.getDOMNode();
+			
 			if (scrollParent === el) {
 				return el.scrollTop;
 			} else if (scrollParent === window) {
 				return -el.getBoundingClientRect().top;
 			} else {
 				return scrollParent.getBoundingClientRect().top -
-					el.getBoundingClientRect().top +
-					parseFloat(window.getComputedStyle(scrollParent).borderTop);
+					el.getBoundingClientRect().top + getComputedValue(scrollParent, 'borderTop');
 			}
 		},
 
 		setScroll: function(y) {
 			var scrollParent = this.getScrollParent(),
 				el = this.getDOMNode();
-			if (scrollParent != el) y += (scrollParent.scrollTop - 
+			
+			if (scrollParent != el) {
+				y += (scrollParent.scrollTop - 
 					(scrollParent.getBoundingClientRect().top -
-					el.getBoundingClientRect().top +
-					parseFloat(window.getComputedStyle(scrollParent).borderTop)));
+					el.getBoundingClientRect().top + 
+					getComputedValue(scrollParent, 'borderTop')));
+			}
 			if (scrollParent === window) return window.scrollTo(0, y);
 			scrollParent.scrollTop = y;
 		},

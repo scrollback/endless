@@ -9,7 +9,7 @@ Supports:
 - Starting at the top, bottom or somewhere in the middle
 - Unknown total number or heights of elements
 - Elements that are different heights
-- Supports elements laid out on a grid
+- Elements laid out on a grid
 
 Unlike other infinite scroll implementations, endless is intentionally simple:
 it does not decide which items to show or control the process of fetching them.
