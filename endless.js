@@ -71,7 +71,7 @@
 		},
 
 		getInitialState: function() {
-			this.lastState = this.lastState ||  { jumpToIndex: null, offset: 0 };
+			this.lastState = this.lastState ||  { jumpRequired: true, offset: 0 };
 			
 			if (this.props.items.length) {
 				if (this.props.atTop) {
@@ -85,6 +85,10 @@
 					this.lastState.position = buildReactElement(this.props.items[0]).key;
 				}
 			}
+			
+			if (this.props.position) {
+				this.lastState.position = this.props.position;
+			}
 
 			return {
 				itemHeight: 25,
@@ -97,27 +101,50 @@
 		},
 
 		update: function() {
-			if (this.lastState.jumpToIndex !== null) {
-				this.scrollTo(this.lastState.jumpToIndex, this.lastState.offset);
-				this.lastState.offset = 0;
-				this.lastState.jumpToIndex = null;
-			}
-			
 			var items = this.props.items,
 				itemsEl = this.refs.items.getDOMNode(),
 				itemEls = itemsEl.children,
-				itemHeight,
-				viewTop = this.getScroll(),
-				viewHeight = this.getViewportHeight(),
-				viewBottom = viewTop + viewHeight,
-				elBottom = this.getDOMNode().scrollHeight,
-				last = this.lastState,
-				position, i, offset, above, below, top, columns;
+				jumped = false;
 			
 			if (!itemEls.length) {
 				this.stid = setTimeout(this.update, 200);
 				return;
 			}
+			
+			if (this.lastState.jumpRequired && this.lastState.position) {
+				if (this.lastState.position == 'top') {
+					this.setScroll(0);
+				//	this.scrollTo(0, 0);
+					jumped = true;
+				} else if (this.lastState.position == 'bottom') {
+					this.setScroll(9E99);
+				//	this.scrollTo(items.length - 1, this.getBottom(itemEls[itemEls.length-1]) - this.getTop(itemEls[itemEls.length-1]));
+					jumped = true;
+				} else {
+					for (i = 0; i < items.length; i++) {
+						if (items[i].key == this.lastState.position) {
+							this.scrollTo(i, this.lastState.offset);
+							jumped = true;
+							break;
+						}
+					}
+				}
+				
+				if(jumped) {
+					this.lastState.offset = 0;
+					this.lastState.jumpRequired = false;
+				}
+				
+				this.afid = requestAnimationFrame(this.update);
+				return;
+			}
+			
+			var viewTop = this.getScroll(),
+				viewHeight = this.getViewportHeight(),
+				viewBottom = viewTop + viewHeight,
+				elBottom = this.getDOMNode().scrollHeight,
+				last = this.lastState,
+				position, i, offset, above, below, itemHeight, top, columns;
 						
 			top = this.getTop(itemEls[0]);
 			
@@ -126,7 +153,7 @@
 			itemHeight = (this.getBottom(itemEls[itemEls.length - 1]) - top) / itemEls.length;
 			if(itemHeight <= 0) itemHeight = 20; // Ugly hack for handling display:none items.
 			itemHeight *= columns;
-			
+						
 			if (this.state.bottomReached && !this.state.bottomRemoved && viewBottom >= elBottom) {
 				position = 'bottom';
 				offset = 0;
@@ -140,7 +167,7 @@
 			} else {
 				for (i = 0; i < itemEls.length; i++) {
 					offset = itemEls[i].offsetTop + itemEls[i].scrollHeight - viewTop;
-					if (offset >= 0) break;
+					if (offset > 0) break;
 				}
 				if (i == itemEls.length) i--; // All the items are above the viewport; pick last one.
 
@@ -154,21 +181,28 @@
 				below = Math.max(0, columns * Math.ceil(Math.max(
 					viewHeight, (viewBottom - itemEls[itemEls.length-1].offsetTop)
 				) / itemHeight) - above);
-				
-				if(isNaN(below)) console.log(viewTop, viewHeight, viewBottom);
 			}
 
 			above = Math.round(above);
 			below = Math.round(below);
 
 			if (last.position !== position || last.above !== above || last.below !== below) {
+				
+//				if(jumped) {
+//					console.log(
+//						'changing position despite jump',
+//						last.position.split('-').pop(),
+//						position.split('-').pop(),
+//						last.offset, offset,
+//						jumpedIndex, i
+//					);
+//				}
+				
 				last.position = position;
 				last.offset = offset;
 				last.above = above;
 				last.below = below;
-				
-			//	console.log(position, above, below, columns);
-				
+								
 				this.afid = requestAnimationFrame(this.update);
 				this.props.onScroll(position, above, below);
 			} else if(last.offset !== offset) {
@@ -195,11 +229,18 @@
 		},
 
 		componentWillReceiveProps: function(nextProps) {
+			
+			if(nextProps.position && nextProps.position !== this.lastState.position) {
+				this.lastState.position = nextProps.position;
+				this.lastState.offset = 0;
+				this.lastState.jumpRequiredAfterUpdate = true;
+			}
+			
 			this.setState({
 				topReached: this.state.topReached || nextProps.atTop,
 				bottomReached: this.state.bottomReached || nextProps.atBottom,
-				topRemoved: nextProps.atTop? 0: this.state.topRemoved,
-				bottomRemoved: nextProps.atBottom? 0: this.state.bottomRemoved,
+				topRemoved: nextProps.atTop? 0: Math.max(10, this.state.topRemoved),
+				bottomRemoved: nextProps.atBottom? 0: Math.max(10, this.state.bottomRemoved),
 			});
 		},
 
@@ -208,12 +249,12 @@
 
 			var prevItems = prevProps.items.map(buildReactElement),
 				items = this.props.items.map(buildReactElement),
-				jumpRequired, newIndex = null,
 				metrics, prevMetrics = this.metrics, i,
 				topAdded, topRemoved, bottomAdded, bottomRemoved;
 
 			if (!items.length || !prevItems.length) return;
-
+			
+			// Calculate the new metrics (tops and bottoms of each element)
 			metrics = [].slice.call(this.refs.items.getDOMNode().children).map(function(itemEl) {
 				return {
 					top: this.getTop(itemEl),
@@ -239,8 +280,6 @@
 				for (i = prevItems.length - 1; i >= 0 && prevItems[i].key != items[items.length - 1].key; i--);
 				bottomRemoved = (i < 0) ? 0 : prevMetrics[prevMetrics.length - 1].bottom - prevMetrics[i].bottom;
 
-				//		console.log(topRemoved, topAdded, bottomRemoved, bottomAdded);
-
 				this.setState({
 					topRemoved: Math.max(0, this.state.topRemoved + topRemoved - topAdded),
 					bottomRemoved: Math.max(0, this.state.bottomRemoved + bottomRemoved - bottomAdded)
@@ -251,32 +290,14 @@
 			//				'Removed space ', this.state.topRemoved, this.state.bottomRemoved);
 			this.metrics = metrics;
 
-			if (items[0].key != prevItems[0].key) jumpRequired = true;
-			if (prevProps.topReached != this.props.topReached) jumpRequired = true;
-			if (this.lastState.position === 'bottom') jumpRequired = true;
-
-			if (jumpRequired) {
-				if (this.lastState.position == 'top') {
-					newIndex = 0;
-					this.lastState.offset = 0;
-				} else if (this.lastState.position == 'bottom') {
-					newIndex = items.length - 1;
-					this.lastState.offset = metrics[metrics.length-1].bottom - metrics[metrics.length-1].top;
-				} else {
-					for (i = 0; i < items.length; i++) {
-						if (items[i].key == this.lastState.position) {
-							newIndex = i;
-							break;
-						}
-					}
-				}
-
-				if (newIndex === null) {
-					console.log('Couldnt find ', this.lastState.position, 'in', items[0].key, '---', items[items.length - 1].key);
-				} else {
-					this.lastState.jumpToIndex = newIndex;
-				}
-
+			if(
+				items[0].key != prevItems[0].key ||
+				!prevProps.topReached && this.props.atTop ||
+				this.lastState.position === 'bottom' ||
+				this.lastState.jumpRequiredAfterUpdate
+			) {
+				this.lastState.jumpRequired = true;
+				delete this.lastState.jumpRequiredAfterUpdate;
 			}
 		},
 
