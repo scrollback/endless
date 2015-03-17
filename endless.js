@@ -154,12 +154,12 @@
 			if(itemHeight <= 0) itemHeight = 20; // Ugly hack for handling display:none items.
 			itemHeight *= columns;
 						
-			if (this.state.bottomReached && !this.state.bottomRemoved && viewBottom >= elBottom-1) {
+			if (this.state.bottomReached && !this.state.bottomRemoved && viewBottom >= elBottom-4) {
 				position = 'bottom';
 				offset = 0;
 				above = columns * Math.ceil(viewHeight / itemHeight);
 				below = 0;
-			} else if (this.state.topReached && !this.state.topRemoved && viewTop <= 1) {
+			} else if (this.state.topReached && !this.state.topRemoved && viewTop <= 4) {
 				position = 'top';
 				offset = 0;
 				above = 0;
@@ -186,7 +186,7 @@
 			above = Math.round(above);
 			below = Math.round(below);
 
-			if (last.position !== position || last.above !== above || last.below !== below) {
+			if (last.position !== position || last.above < above || last.below < below) {
 				
 //				if(jumped) {
 //					console.log(
