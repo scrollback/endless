@@ -133,6 +133,8 @@
 				if(jumped) {
 					this.lastState.offset = 0;
 					this.lastState.jumpRequired = false;
+				} else {
+					console.log("Endless Error: Jump was required but it did not happen. This usually happens when scrolling down very fast.");
 				}
 				
 				this.afid = requestAnimationFrame(this.update);
@@ -167,7 +169,10 @@
 			} else {
 				for (i = 0; i < itemEls.length; i++) {
 					offset = itemEls[i].offsetTop + itemEls[i].scrollHeight - viewTop;
-					if (offset > 0) break;
+					if (offset >= 0) {
+						offset = viewTop - itemEls[i].offsetTop;
+						break;
+					}
 				}
 				if (i == itemEls.length) i--; // All the items are above the viewport; pick last one.
 
@@ -185,18 +190,8 @@
 
 			above = Math.round(above);
 			below = Math.round(below);
-
+			
 			if (last.position !== position || last.above < above || last.below < below) {
-				
-//				if(jumped) {
-//					console.log(
-//						'changing position despite jump',
-//						last.position.split('-').pop(),
-//						position.split('-').pop(),
-//						last.offset, offset,
-//						jumpedIndex, i
-//					);
-//				}
 				
 				last.position = position;
 				last.offset = offset;
