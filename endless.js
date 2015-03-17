@@ -113,7 +113,7 @@
 			
 			if (this.lastState.jumpRequired && this.lastState.position) {
 				if (this.lastState.position == 'top') {
-					this.setScroll(0);
+					this.setScroll(-9E99);
 				//	this.scrollTo(0, 0);
 					jumped = true;
 				} else if (this.lastState.position == 'bottom') {
@@ -145,7 +145,7 @@
 				elBottom = this.getDOMNode().scrollHeight,
 				last = this.lastState,
 				position, i, offset, above, below, itemHeight, top, columns;
-						
+				
 			top = this.getTop(itemEls[0]);
 			
 			for(columns=1; columns<itemEls.length && this.getTop(itemEls[columns]) == top; columns++);
@@ -154,12 +154,12 @@
 			if(itemHeight <= 0) itemHeight = 20; // Ugly hack for handling display:none items.
 			itemHeight *= columns;
 						
-			if (this.state.bottomReached && !this.state.bottomRemoved && viewBottom >= elBottom) {
+			if (this.state.bottomReached && !this.state.bottomRemoved && viewBottom >= elBottom-1) {
 				position = 'bottom';
 				offset = 0;
 				above = columns * Math.ceil(viewHeight / itemHeight);
 				below = 0;
-			} else if (this.state.topReached && !this.state.topRemoved && viewTop <= 0) {
+			} else if (this.state.topReached && !this.state.topRemoved && viewTop <= 1) {
 				position = 'top';
 				offset = 0;
 				above = 0;
@@ -344,6 +344,7 @@
 					el.getBoundingClientRect().top + 
 					getComputedValue(scrollParent, 'borderTop')));
 			}
+			y = Math.max(0, y);
 			if (scrollParent === window) return window.scrollTo(0, y);
 			scrollParent.scrollTop = y;
 		},
