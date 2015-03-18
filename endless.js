@@ -131,10 +131,11 @@
 				}
 				
 				if(jumped) {
-					this.lastState.offset = 0;
+//					this.lastState.offset = 0;
 					this.lastState.jumpRequired = false;
 				} else {
-					console.log("Endless Error: Jump was required but it did not happen. This usually happens when scrolling down very fast.");
+					console.error("Endless Error: Jump was required but it did not happen. "+
+								"This usually happens when scrolling down very fast.");
 				}
 				
 				this.afid = requestAnimationFrame(this.update);
@@ -169,7 +170,7 @@
 			} else {
 				for (i = 0; i < itemEls.length; i++) {
 					offset = itemEls[i].offsetTop + itemEls[i].scrollHeight - viewTop;
-					if (offset >= 0) {
+					if (offset > 0) {
 						offset = viewTop - itemEls[i].offsetTop;
 						break;
 					}
@@ -190,8 +191,10 @@
 
 			above = Math.round(above);
 			below = Math.round(below);
-			
+						
 			if (last.position !== position || last.above < above || last.below < below) {
+				
+//				console.debug("Position changed to", position, above, below);
 				
 				last.position = position;
 				last.offset = offset;
@@ -201,6 +204,7 @@
 				this.afid = requestAnimationFrame(this.update);
 				this.props.onScroll(position, above, below);
 			} else if(last.offset !== offset) {
+				last.offset = offset;
 				this.afid = requestAnimationFrame(this.update);
 			} else {
 				this.stid = setTimeout(this.update, 200);
@@ -229,6 +233,7 @@
 				this.lastState.position = nextProps.position;
 				this.lastState.offset = 0;
 				this.lastState.jumpRequiredAfterUpdate = true;
+//				console.debug('Received a position property that will cause a jump');
 			}
 			
 			this.setState({
@@ -258,7 +263,7 @@
 			}.bind(this));
 			
 			if(prevMetrics && prevMetrics.length !== prevItems.length) {
-				console.log("Endless Error: prevMetrics.length ≠ prevItems.length. "+
+				console.error("Endless Error: prevMetrics.length ≠ prevItems.length. "+
 							"Did you modify the items array after calling setProps?", prevMetrics.length, prevItems.length);
 			}
 
@@ -291,6 +296,11 @@
 				this.lastState.position === 'bottom' ||
 				this.lastState.jumpRequiredAfterUpdate
 			) {
+//				console.debug("Scheduled a jump to", this.lastState.position,
+//					items[0].key != prevItems[0].key? 'topItemChanged': '',
+//					!prevProps.topReached && this.props.atTop? 'justReachedTop': '',
+//					this.lastState.jumpRequiredAfterUpdate? 'positionInProp': ''
+//				);
 				this.lastState.jumpRequired = true;
 				delete this.lastState.jumpRequiredAfterUpdate;
 			}
@@ -333,15 +343,19 @@
 			var scrollParent = this.getScrollParent(),
 				el = this.getDOMNode();
 			
+//			console.debug('setScroll called with ', y);
+			
 			if (scrollParent != el) {
 				y += (scrollParent.scrollTop - 
 					(scrollParent.getBoundingClientRect().top -
 					el.getBoundingClientRect().top + 
 					getComputedValue(scrollParent, 'borderTop')));
 			}
-			y = Math.max(0, y);
+			y = Math.min(scrollParent.scrollHeight, Math.max(0, y));
 			if (scrollParent === window) return window.scrollTo(0, y);
+//			console.debug('About to scroll', scrollParent, y);
 			scrollParent.scrollTop = y;
+//			console.debug('After scroll', scrollParent.scrollHeight, scrollParent.scrollTop, scrollParent.clientHeight);
 		},
 
 		getViewportHeight: function() {
