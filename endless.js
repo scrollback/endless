@@ -3,7 +3,8 @@
 	Based on ReactList (https://github.com/orgsync/react-list)
 */
 
-/* global define, module, require, setTimeout, clearTimeout, window */
+/* jshint browser: true */
+/* global define, module */
 /* jshint -W116 */ // Don't warn about single-line if's.
 
 (function(root, factory) {
@@ -50,7 +51,7 @@
 	var isEqual = function(a, b) {
 		return isEqualSubset(a, b) && isEqualSubset(b, a);
 	};
-	
+
 	var getComputedValue = function (el, propName) {
 		var value = parseFloat(window.getComputedStyle(el)[propName]);
 		if(isNaN(value)) value = 0;
@@ -72,7 +73,7 @@
 
 		getInitialState: function() {
 			this.lastState = this.lastState ||  { jumpRequired: true, offset: 0 };
-			
+
 			if (this.props.items.length) {
 				if (this.props.atTop) {
 					this.lastState.jumpToIndex = 0;
@@ -85,7 +86,7 @@
 					this.lastState.position = buildReactElement(this.props.items[0]).key;
 				}
 			}
-			
+
 			if (this.props.position) {
 				this.lastState.position = this.props.position;
 			}
@@ -105,12 +106,12 @@
 				itemsEl = this.refs.items.getDOMNode(),
 				itemEls = itemsEl.children,
 				jumped = false;
-			
+
 			if (!itemEls.length) {
 				this.stid = setTimeout(this.update, 200);
 				return;
 			}
-			
+
 			if (this.lastState.jumpRequired && this.lastState.position) {
 				if (this.lastState.position == 'top') {
 					this.setScroll(-9E99);
@@ -129,7 +130,7 @@
 						}
 					}
 				}
-				
+
 				if(jumped) {
 //					this.lastState.offset = 0;
 					this.lastState.jumpRequired = false;
@@ -137,26 +138,26 @@
 					console.error("Endless Error: Jump was required but it did not happen. "+
 								"This usually happens when scrolling down very fast.");
 				}
-				
+
 				this.afid = requestAnimationFrame(this.update);
 				return;
 			}
-			
+
 			var viewTop = this.getScroll(),
 				viewHeight = this.getViewportHeight(),
 				viewBottom = viewTop + viewHeight,
 				elBottom = this.getDOMNode().scrollHeight,
 				last = this.lastState,
 				position, i, offset, above, below, itemHeight, top, columns;
-				
+
 			top = this.getTop(itemEls[0]);
-			
+
 			for(columns=1; columns<itemEls.length && this.getTop(itemEls[columns]) == top; columns++);
-			
+
 			itemHeight = (this.getBottom(itemEls[itemEls.length - 1]) - top) / itemEls.length;
 			if(itemHeight <= 0) itemHeight = 20; // Ugly hack for handling display:none items.
 			itemHeight *= columns;
-						
+
 			if (this.state.bottomReached && !this.state.bottomRemoved && viewBottom >= elBottom-4) {
 				position = 'bottom';
 				offset = 0;
@@ -191,33 +192,39 @@
 
 			above = Math.round(above);
 			below = Math.round(below);
-						
+
 			if (last.position !== position || last.above < above || last.below < below) {
-				
+
 //				console.debug("Position changed to", position, above, below);
-				
+
 				last.position = position;
 				last.offset = offset;
 				last.above = above;
 				last.below = below;
-								
+
 				this.afid = requestAnimationFrame(this.update);
 				this.props.onScroll(position, above, below);
-			} else if(last.offset !== offset) {
+			} else if (last.offset !== offset) {
 				last.offset = offset;
 				this.afid = requestAnimationFrame(this.update);
 			} else {
 				this.stid = setTimeout(this.update, 200);
 			}
 		},
-		
+
+		windowResized: function() {
+			this.lastState.jumpRequired = true;
+		},
+
 		componentDidMount: function() {
 			this.update();
+			window.addEventListener('resize', this.windowResized);
 			this.props.onMount();
 		},
 
 		componentWillUnmount: function() {
 			cancelAnimationFrame(this.afid);
+			window.removeEventListener('resize', this.windowResized);
 			clearTimeout(this.stid);
 			this.props.onUnmount();
 		},
@@ -228,14 +235,14 @@
 		},
 
 		componentWillReceiveProps: function(nextProps) {
-			
-			if(nextProps.position && nextProps.position !== this.lastState.position) {
+
+			if (nextProps.position && nextProps.position !== this.lastState.position) {
 				this.lastState.position = nextProps.position;
 				this.lastState.offset = 0;
 				this.lastState.jumpRequiredAfterUpdate = true;
 //				console.debug('Received a position property that will cause a jump');
 			}
-			
+
 			this.setState({
 				topReached: this.state.topReached || nextProps.atTop,
 				bottomReached: this.state.bottomReached || nextProps.atBottom,
@@ -253,7 +260,7 @@
 				topAdded, topRemoved, bottomAdded, bottomRemoved;
 
 			if (!items.length || !prevItems.length) return;
-			
+
 			// Calculate the new metrics (tops and bottoms of each element)
 			metrics = [].slice.call(this.refs.items.getDOMNode().children).map(function(itemEl) {
 				return {
@@ -261,8 +268,8 @@
 					bottom: this.getBottom(itemEl)
 				};
 			}.bind(this));
-			
-			if(prevMetrics && prevMetrics.length !== prevItems.length) {
+
+			if (prevMetrics && prevMetrics.length !== prevItems.length) {
 				console.error("Endless Error: prevMetrics.length ≠ prevItems.length. "+
 							"Did you modify the items array after calling setProps?", prevMetrics.length, prevItems.length);
 			}
@@ -328,7 +335,7 @@
 		getScroll: function() {
 			var scrollParent = this.getScrollParent(),
 				el = this.getDOMNode();
-			
+
 			if (scrollParent === el) {
 				return el.scrollTop;
 			} else if (scrollParent === window) {
@@ -342,13 +349,13 @@
 		setScroll: function(y) {
 			var scrollParent = this.getScrollParent(),
 				el = this.getDOMNode();
-			
+
 //			console.debug('setScroll called with ', y);
-			
+
 			if (scrollParent != el) {
-				y += (scrollParent.scrollTop - 
+				y += (scrollParent.scrollTop -
 					(scrollParent.getBoundingClientRect().top -
-					el.getBoundingClientRect().top + 
+					el.getBoundingClientRect().top +
 					getComputedValue(scrollParent, 'borderTop')));
 			}
 			y = Math.min(scrollParent.scrollHeight, Math.max(0, y));
