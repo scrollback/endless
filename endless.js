@@ -137,6 +137,7 @@
 				} else {
 					console.error("Endless Error: Jump was required but it did not happen. "+
 								"This usually happens when scrolling down very fast.");
+					this.lastState.jumpRequired = false;
 				}
 
 				this.afid = requestAnimationFrame(this.update);

@@ -4,7 +4,7 @@
 		<meta charset="utf-8">
 		<title>Endless Tester</title>
 		<style>
-			html, body { font: normal 100 13px/18px Lato; }
+			html, body { font: normal 100 13px/18px Lato; margin: 0; padding: 0; height: 100%; }
 			.item {
 				width: 100%;
 				font-size: 3em;
@@ -19,15 +19,18 @@
 				float: left;
 				text-align: center;
 			}
+			.container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: auto; }
 			p, h1, h2 { clear: both; text-align: center; padding: 5em 0;}
 		</style>
 	</head>
 	<body>
-		<h1>There are some items below.</h1>
-		<div id='app' class='post-ctnr'></div>
-		<h2>There were some items above</h2>
+		<div class="container">
+			<h1>There are some items below.</h1>
+			<div id="app" class="post-ctnr"></div>
+			<h2>There were some items above</h2>
+		</div>
 		
-		<script src="react.js"></script>
+		<script src="bower_components/react/react.min.js"></script>
 		<script src="endless.js"></script>
 		<script>
 			function getItem(i) { return ['div', {className: 'item', style: {lineHeight: (Math.abs(i)%7+1) + 'em'}, key: i}, i<0?'('+(-i)+')': i]; }
