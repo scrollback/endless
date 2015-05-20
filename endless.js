@@ -153,7 +153,11 @@
 
 			top = this.getTop(itemEls[0]);
 
-			for(columns=1; columns<itemEls.length && this.getTop(itemEls[columns]) == top; columns++);
+			columns = 1;
+
+			while (columns < itemEls.length && this.getTop(itemEls[columns]) === top) {
+				columns++;
+			}
 
 			itemHeight = (this.getBottom(itemEls[itemEls.length - 1]) - top) / itemEls.length;
 			if(itemHeight <= 0) itemHeight = 20; // Ugly hack for handling display:none items.
