@@ -3,10 +3,6 @@
 	Based on ReactList (https://github.com/orgsync/react-list)
 */
 
-/* jshint browser: true */
-/* global define, module */
-/* jshint -W116 */ // Don't warn about single-line if's.
-
 (function(root, factory) {
 	if (typeof define === 'function' && define.amd) {
 		define(['react'], factory);
