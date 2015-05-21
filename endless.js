@@ -70,16 +70,16 @@
 		getInitialState: function() {
 			this.lastState = this.lastState ||  { jumpRequired: true, offset: 0 };
 
-			if (this.props.items.length) {
+			if (this.props.children.length) {
 				if (this.props.atTop) {
 					this.lastState.jumpToIndex = 0;
 					this.lastState.position = 'top';
 				} else if (this.props.atBottom) {
-					this.lastState.jumpToIndex = this.props.items.length - 1;
+					this.lastState.jumpToIndex = this.props.children.length - 1;
 					this.lastState.position = 'bottom';
 				} else {
 					this.lastState.jumpToIndex = 0;
-					this.lastState.position = buildReactElement(this.props.items[0]).key;
+					this.lastState.position = buildReactElement(this.props.children[0]).key;
 				}
 			}
 
@@ -98,10 +98,10 @@
 		},
 
 		update: function() {
-			var items = this.props.items,
+			var items = this.props.children,
 				itemsEl = this.refs.items.getDOMNode(),
 				itemEls = itemsEl.children,
-				jumped = false;
+				jumped = false, i;
 
 			if (!itemEls.length) {
 				this.stid = setTimeout(this.update, 200);
@@ -109,17 +109,17 @@
 			}
 
 			if (this.lastState.jumpRequired && this.lastState.position) {
-				if (this.lastState.position == 'top') {
+				if (this.lastState.position === 'top') {
 					this.setScroll(-9E99);
 				//	this.scrollTo(0, 0);
 					jumped = true;
-				} else if (this.lastState.position == 'bottom') {
+				} else if (this.lastState.position === 'bottom') {
 					this.setScroll(9E99);
 				//	this.scrollTo(items.length - 1, this.getBottom(itemEls[itemEls.length-1]) - this.getTop(itemEls[itemEls.length-1]));
 					jumped = true;
 				} else {
 					for (i = 0; i < items.length; i++) {
-						if (items[i].key == this.lastState.position) {
+						if (items[i].key === this.lastState.position) {
 							this.scrollTo(i, this.lastState.offset);
 							jumped = true;
 							break;
@@ -131,12 +131,14 @@
 //					this.lastState.offset = 0;
 					this.lastState.jumpRequired = false;
 				} else {
-					console.error("Endless Error: Jump was required but it did not happen. "+
-								"This usually happens when scrolling down very fast.");
+					console.error("Endless Error: Jump was required but it did not happen. " +
+								  "This usually happens when scrolling down very fast.");
+
 					this.lastState.jumpRequired = false;
 				}
 
 				this.afid = requestAnimationFrame(this.update);
+
 				return;
 			}
 
@@ -145,7 +147,7 @@
 				viewBottom = viewTop + viewHeight,
 				elBottom = this.getDOMNode().scrollHeight,
 				last = this.lastState,
-				position, i, offset, above, below, itemHeight, top, columns;
+				position, offset, above, below, itemHeight, top, columns;
 
 			top = this.getTop(itemEls[0]);
 
@@ -156,10 +158,12 @@
 			}
 
 			itemHeight = (this.getBottom(itemEls[itemEls.length - 1]) - top) / itemEls.length;
-			if(itemHeight <= 0) itemHeight = 20; // Ugly hack for handling display:none items.
+
+			if (itemHeight <= 0) { itemHeight = 20; } // Ugly hack for handling display:none items.
+
 			itemHeight *= columns;
 
-			if (this.state.bottomReached && !this.state.bottomRemoved && viewBottom >= elBottom-4) {
+			if (this.state.bottomReached && !this.state.bottomRemoved && viewBottom >= elBottom - 4) {
 				position = 'bottom';
 				offset = 0;
 				above = columns * Math.ceil(viewHeight / itemHeight);
@@ -172,20 +176,24 @@
 			} else {
 				for (i = 0; i < itemEls.length; i++) {
 					offset = itemEls[i].offsetTop + itemEls[i].scrollHeight - viewTop;
+
 					if (offset > 0) {
 						offset = viewTop - itemEls[i].offsetTop;
 						break;
 					}
 				}
-				if (i == itemEls.length) i--; // All the items are above the viewport; pick last one.
+
+				if (i === itemEls.length) { i--; } // All the items are above the viewport; pick last one.
 
 				position = buildReactElement(items[i]).key; // building in case it is JSONML
+
 				if (viewTop < itemEls[0].offsetTop) {
 					offset = viewTop - itemEls[0].offsetTop;
 					above = columns * Math.ceil(-offset / itemHeight);
 				} else {
 					above = 0;
 				}
+
 				below = Math.max(0, columns * Math.ceil(Math.max(
 					viewHeight, (viewBottom - itemEls[itemEls.length-1].offsetTop)
 				) / itemHeight) - above);
@@ -248,7 +256,7 @@
 				topReached: this.state.topReached || nextProps.atTop,
 				bottomReached: this.state.bottomReached || nextProps.atBottom,
 				topRemoved: nextProps.atTop? 0: Math.max(10, this.state.topRemoved),
-				bottomRemoved: nextProps.atBottom? 0: Math.max(10, this.state.bottomRemoved),
+				bottomRemoved: nextProps.atBottom? 0: Math.max(10, this.state.bottomRemoved)
 			});
 		},
 
@@ -256,7 +264,7 @@
 //			if (this.lastState.jumpToIndex !== null) return;
 
 			var prevItems = prevProps.items.map(buildReactElement),
-				items = this.props.items.map(buildReactElement),
+				items = this.props.children.map(buildReactElement),
 				metrics, prevMetrics = this.metrics, i,
 				topAdded, topRemoved, bottomAdded, bottomRemoved;
 
@@ -271,21 +279,41 @@
 			}.bind(this));
 
 			if (prevMetrics && prevMetrics.length !== prevItems.length) {
-				console.error("Endless Error: prevMetrics.length ≠ prevItems.length. "+
-							"Did you modify the items array after calling setProps?", prevMetrics.length, prevItems.length);
+				console.error("Endless Error: prevMetrics.length ≠ prevItems.length. " +
+							  "Did you modify the items array after calling setProps?", prevMetrics.length, prevItems.length);
 			}
 
 			if (metrics && prevMetrics && items.length && prevItems.length) {
-				for (i = 0; i < items.length && items[i].key != prevItems[0].key; i++);
-				topAdded = (i == items.length) ? 0 : metrics[i].top - metrics[0].top;
+				i = 0;
 
-				for (i = 0; i < prevItems.length && prevItems[i].key != items[0].key; i++);
-				topRemoved = (i == prevItems.length) ? 0 : prevMetrics[i].top - prevMetrics[0].top;
+				while (i < items.length && items[i].key !== prevItems[0].key) {
+					i++;
+				}
 
-				for (i = items.length - 1; i >= 0 && items[i].key != prevItems[prevItems.length - 1].key; i--);
+				topAdded = (i === items.length) ? 0 : metrics[i].top - metrics[0].top;
+
+				i = 0;
+
+				while (i < prevItems.length && prevItems[i].key !== items[0].key) {
+					i++;
+				}
+
+				topRemoved = (i === prevItems.length) ? 0 : prevMetrics[i].top - prevMetrics[0].top;
+
+				i = items.length - 1;
+
+				while (i >= 0 && items[i].key !== prevItems[prevItems.length - 1].key) {
+					i--;
+				}
+
 				bottomAdded = (i < 0) ? 0 : metrics[metrics.length - 1].bottom - metrics[i].bottom;
 
-				for (i = prevItems.length - 1; i >= 0 && prevItems[i].key != items[items.length - 1].key; i--);
+				i = prevItems.length - 1;
+
+				while (i >= 0 && prevItems[i].key !== items[items.length - 1].key) {
+					i--;
+				}
+
 				bottomRemoved = (i < 0) ? 0 : prevMetrics[prevMetrics.length - 1].bottom - prevMetrics[i].bottom;
 
 				this.setState({
@@ -299,7 +327,7 @@
 			this.metrics = metrics;
 
 			if(
-				items[0].key != prevItems[0].key ||
+				items[0].key !== prevItems[0].key ||
 				!prevProps.topReached && this.props.atTop ||
 				this.lastState.position === 'bottom' ||
 				this.lastState.jumpRequiredAfterUpdate
@@ -394,7 +422,7 @@
 				}],
 				['div', {
 					ref: 'items'
-				}].concat(this.props.items), ['div', {
+				}].concat(this.props.children), ['div', {
 					style: {
 						clear: 'both',
 						height: this.state.bottomRemoved + (this.state.bottomReached ? 0 : this.props.margin)
