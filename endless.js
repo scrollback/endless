@@ -53,6 +53,12 @@
 	};
 
 	var addResizeListener = function(el, fn) {
+		if (el === window) {
+			window.addEventListener('resize', resizeListener);
+
+			return;
+		}
+
 		if (!el.__resizeListeners__) {
 			el.__resizeListeners__ = [];
 
@@ -80,6 +86,12 @@
 	};
 
 	var removeResizeListener = function(el, fn) {
+		if (el === window) {
+			window.removeEventListener('resize', resizeListener);
+
+			return;
+		}
+
 		el.__resizeListeners__.splice(el.__resizeListeners__.indexOf(fn), 1);
 
 		if (!el.__resizeListeners__.length) {
@@ -149,7 +161,7 @@
 
 		update: function() {
 			var items = this.props.children,
-				itemsEl = this.refs.items.getDOMNode(),
+				itemsEl = React.findDOMNode(this.refs.items),
 				itemEls = itemsEl.children,
 				jumped = false, i;
 
@@ -194,7 +206,7 @@
 			var viewTop = this.getScroll(), // Get scroll position of the scroll parent
 				viewHeight = this.getViewportHeight(),
 				viewBottom = viewTop + viewHeight,
-				elBottom = this.getDOMNode().scrollHeight, // Get the total height of the scroll viewport
+				elBottom = React.findDOMNode(this).scrollHeight, // Get the total height of the scroll viewport
 				last = this.lastState,
 				position, offset, above, below, itemHeight, top, columns;
 
@@ -285,7 +297,7 @@
 		componentDidMount: function() {
 			this.update();
 
-			addResizeListener(React.findDOMNode(this), this.onResize);
+			addResizeListener(this.getScrollParent(), this.onResize);
 
 			this.props.onMount();
 		},
@@ -293,7 +305,7 @@
 		componentWillUnmount: function() {
 			cancelAnimationFrame(this.afid);
 
-			removeResizeListener(React.findDOMNode(this), this.onResize);
+			removeResizeListener(this.getScrollParent(), this.onResize);
 
 			clearTimeout(this.stid);
 
@@ -333,7 +345,7 @@
 			if (!items.length || !prevItems.length) return;
 
 			// Calculate the new metrics (tops and bottoms of each element)
-			metrics = [].slice.call(this.refs.items.getDOMNode().children).map(function(itemEl) {
+			metrics = [].slice.call(React.findDOMNode(this.refs.items).children).map(function(itemEl) {
 				return {
 					top: this.getTop(itemEl),
 					bottom: this.getBottom(itemEl)
@@ -420,19 +432,21 @@
 		},
 
 		getScrollParent: function() {
-			for (var el = this.getDOMNode(); el; el = el.parentElement) {
+			for (var el = React.findDOMNode(this); el; el = el.parentElement) {
 				var overflowY = window.getComputedStyle(el).overflowY;
+
 				if (overflowY === 'auto' || overflowY === 'scroll') {
 					return el;
 				}
 			}
+
 			return window;
 		},
 
 		// Get scroll position relative to the top of the list.
 		getScroll: function() {
 			var scrollParent = this.getScrollParent(),
-				el = this.getDOMNode();
+				el = React.findDOMNode(this);
 
 			if (scrollParent === el) {
 				return el.scrollTop;
@@ -446,7 +460,7 @@
 
 		setScroll: function(y) {
 			var scrollParent = this.getScrollParent(),
-				el = this.getDOMNode();
+				el = React.findDOMNode(this);
 
 //			console.debug('setScroll called with ', y);
 
@@ -469,11 +483,11 @@
 		},
 
 		scrollTo: function(index, offset) {
-			var y = this.refs.items.getDOMNode().children[index].offsetTop + offset;
+			var y = React.findDOMNode(this.refs.items).children[index].offsetTop + offset;
 
 			//	console.log(
 			//		"scrolling from", this.getScroll(), "to",
-			//		this.refs.items.getDOMNode().children[index].offsetTop, offset
+			//		React.findDOMNode(this.refs.items).children[index].offsetTop, offset
 			//	);
 			this.setScroll(y);
 		},
