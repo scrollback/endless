@@ -104,7 +104,9 @@
 				jumped = false, i;
 
 			if (!itemEls.length) {
+				// There are no items yet, delay the next update a little
 				this.stid = setTimeout(this.update, 200);
+
 				return;
 			}
 
@@ -127,28 +129,26 @@
 					}
 				}
 
-				if(jumped) {
-//					this.lastState.offset = 0;
-					this.lastState.jumpRequired = false;
-				} else {
+				if (!jumped) {
 					console.error("Endless Error: Jump was required but it did not happen. " +
 								  "This usually happens when scrolling down very fast.");
-
-					this.lastState.jumpRequired = false;
 				}
+
+				this.lastState.jumpRequired = false;
 
 				this.afid = requestAnimationFrame(this.update);
 
 				return;
 			}
 
-			var viewTop = this.getScroll(),
+			var viewTop = this.getScroll(), // Get scroll position of the scroll parent
 				viewHeight = this.getViewportHeight(),
 				viewBottom = viewTop + viewHeight,
-				elBottom = this.getDOMNode().scrollHeight,
+				elBottom = this.getDOMNode().scrollHeight, // Get the total height of the scroll viewport
 				last = this.lastState,
 				position, offset, above, below, itemHeight, top, columns;
 
+			// Calculate the number of columns by comparing the top offset values
 			top = this.getTop(itemEls[0]);
 
 			columns = 1;
@@ -157,6 +157,7 @@
 				columns++;
 			}
 
+			// Get average height of the items
 			itemHeight = (this.getBottom(itemEls[itemEls.length - 1]) - top) / itemEls.length;
 
 			if (itemHeight <= 0) { itemHeight = 20; } // Ugly hack for handling display:none items.
@@ -164,39 +165,45 @@
 			itemHeight *= columns;
 
 			if (this.state.bottomReached && !this.state.bottomRemoved && viewBottom >= elBottom - 4) {
+				// The viewport has scrolled to bottom
 				position = 'bottom';
 				offset = 0;
 				above = columns * Math.ceil(viewHeight / itemHeight);
 				below = 0;
 			} else if (this.state.topReached && !this.state.topRemoved && viewTop <= 4) {
+				// The viewport has scrolled to top
 				position = 'top';
 				offset = 0;
 				above = 0;
 				below = columns * Math.ceil(viewHeight / itemHeight);
 			} else {
 				for (i = 0; i < itemEls.length; i++) {
-					offset = itemEls[i].offsetTop + itemEls[i].scrollHeight - viewTop;
+					offset = itemEls[i].offsetTop + itemEls[i].scrollHeight - viewTop; // Distance of the element from the top of the viewport
 
 					if (offset > 0) {
+						// Element is visible in the viewport
 						offset = viewTop - itemEls[i].offsetTop;
 						break;
 					}
 				}
 
-				if (i === itemEls.length) { i--; } // All the items are above the viewport; pick last one.
+				if (i === itemEls.length) { i--; } // All the items are above the viewport, pick last one.
 
-				position = buildReactElement(items[i]).key; // building in case it is JSONML
+				position = buildReactElement(items[i]).key; // Building in case it is JSONML
 
 				if (viewTop < itemEls[0].offsetTop) {
+					// Space at top is less than space above first element
+					// Means there are items above the top of the view
 					offset = viewTop - itemEls[0].offsetTop;
 					above = columns * Math.ceil(-offset / itemHeight);
 				} else {
+					// No items above the top of the view
 					above = 0;
 				}
 
 				below = Math.max(0, columns * Math.ceil(Math.max(
 					viewHeight, (viewBottom - itemEls[itemEls.length-1].offsetTop)
-				) / itemHeight) - above);
+				) / itemHeight) - above); // Number of items below the bottom of the view
 			}
 
 			above = Math.round(above);
@@ -204,7 +211,7 @@
 
 			if (last.position !== position || last.above < above || last.below < below) {
 
-//				console.debug("Position changed to", position, above, below);
+				// console.debug("Position changed to", position, above, below);
 
 				last.position = position;
 				last.offset = offset;
@@ -227,7 +234,9 @@
 
 		componentDidMount: function() {
 			this.update();
+
 			window.addEventListener('resize', this.windowResized);
+
 			this.props.onMount();
 		},
 
@@ -284,6 +293,7 @@
 			}
 
 			if (metrics && prevMetrics && items.length && prevItems.length) {
+				// Check how many items were added at the beggining of the data set
 				i = 0;
 
 				while (i < items.length && items[i].key !== prevItems[0].key) {
@@ -292,6 +302,7 @@
 
 				topAdded = (i === items.length) ? 0 : metrics[i].top - metrics[0].top;
 
+				// Check how many items were removed from the start of the data set
 				i = 0;
 
 				while (i < prevItems.length && prevItems[i].key !== items[0].key) {
@@ -300,6 +311,8 @@
 
 				topRemoved = (i === prevItems.length) ? 0 : prevMetrics[i].top - prevMetrics[0].top;
 
+
+				// Check how many items were added at the end of the data set
 				i = items.length - 1;
 
 				while (i >= 0 && items[i].key !== prevItems[prevItems.length - 1].key) {
@@ -308,6 +321,8 @@
 
 				bottomAdded = (i < 0) ? 0 : metrics[metrics.length - 1].bottom - metrics[i].bottom;
 
+
+				// Cehck how many items were removed from the end of the data set
 				i = prevItems.length - 1;
 
 				while (i >= 0 && prevItems[i].key !== items[items.length - 1].key) {
@@ -316,6 +331,7 @@
 
 				bottomRemoved = (i < 0) ? 0 : prevMetrics[prevMetrics.length - 1].bottom - prevMetrics[i].bottom;
 
+				// Set the state with the new values, so our view gets updated
 				this.setState({
 					topRemoved: Math.max(0, this.state.topRemoved + topRemoved - topAdded),
 					bottomRemoved: Math.max(0, this.state.bottomRemoved + bottomRemoved - bottomAdded)
