@@ -38,6 +38,56 @@
 		(typeof window !== 'undefined' && window.cancelAnimationFrame) ||
 		clearTimeout;
 
+	var resizeListener = function(e) {
+		var el = e.target || e.srcElement;
+
+		if (el.__resizeRAF__) cancelAnimationFrame(el.__resizeRAF__);
+
+		el.__resizeRAF__ = requestAnimationFrame(function() {
+			var trigger = el.__resizeTrigger__;
+
+			trigger.__resizeListeners__.forEach(function(fn) {
+				fn.call(trigger, e);
+			});
+		});
+	};
+
+	var addResizeListener = function(el, fn) {
+		if (!el.__resizeListeners__) {
+			el.__resizeListeners__ = [];
+
+			if (getComputedStyle(el).position === 'static') {
+				el.style.position = 'relative';
+			}
+
+			var obj = el.__resizeTrigger__ = document.createElement('object');
+
+			obj.setAttribute('style', 'display: block; position: absolute; top: 0; left: 0; height: 100%; width: 100%; overflow: hidden; pointer-events: none; z-index: -1;');
+			obj.__resizeElement__ = el;
+
+			obj.onload = function objectLoad() {
+				this.contentDocument.defaultView.__resizeTrigger__ = this.__resizeElement__;
+				this.contentDocument.defaultView.addEventListener('resize', resizeListener);
+			};
+
+			obj.type = 'text/html';
+			obj.data = 'about:blank';
+
+			el.appendChild(obj);
+		}
+
+		el.__resizeListeners__.push(fn);
+	};
+
+	var removeResizeListener = function(el, fn) {
+		el.__resizeListeners__.splice(el.__resizeListeners__.indexOf(fn), 1);
+
+		if (!el.__resizeListeners__.length) {
+			el.__resizeTrigger__.contentDocument.defaultView.removeEventListener('resize', resizeListener);
+			el.__resizeTrigger__ = !el.removeChild(el.__resizeTrigger__);
+		}
+	};
+
 	var isEqualSubset = function(a, b) {
 		for (var key in a)
 			if (b[key] !== a[key]) return false;
@@ -228,22 +278,25 @@
 			}
 		},
 
-		windowResized: function() {
+		onResize: function() {
 			this.lastState.jumpRequired = true;
 		},
 
 		componentDidMount: function() {
 			this.update();
 
-			window.addEventListener('resize', this.windowResized);
+			addResizeListener(React.findDOMNode(this), this.onResize);
 
 			this.props.onMount();
 		},
 
 		componentWillUnmount: function() {
 			cancelAnimationFrame(this.afid);
-			window.removeEventListener('resize', this.windowResized);
+
+			removeResizeListener(React.findDOMNode(this), this.onResize);
+
 			clearTimeout(this.stid);
+
 			this.props.onUnmount();
 		},
 
@@ -397,7 +450,7 @@
 
 //			console.debug('setScroll called with ', y);
 
-			if (scrollParent != el) {
+			if (scrollParent !== el) {
 				y += (scrollParent.scrollTop -
 					(scrollParent.getBoundingClientRect().top -
 					el.getBoundingClientRect().top +
@@ -427,18 +480,15 @@
 
 		render: function() {
 			return buildReactElement(['div', {
-					style: {
-						position: 'relative'
-					}
+					style: { position: 'relative' }
 				},
 				['div', {
-					style: {
-						height: this.state.topRemoved + (this.state.topReached ? 0 : this.props.margin)
-					}
+					style: { height: this.state.topRemoved + (this.state.topReached ? 0 : this.props.margin) }
 				}],
 				['div', {
 					ref: 'items'
-				}].concat(this.props.children), ['div', {
+				}].concat(this.props.children),
+				['div', {
 					style: {
 						clear: 'both',
 						height: this.state.bottomRemoved + (this.state.bottomReached ? 0 : this.props.margin)
