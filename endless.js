@@ -130,23 +130,23 @@
 		},
 
 		getInitialState: function() {
-			this.lastState = this.lastState ||  { jumpRequired: true, offset: 0 };
+			this.untrackedState = this.untrackedState ||  { jumpRequired: true, offset: 0 };
 
 			if (this.props.children.length) {
 				if (this.props.atTop) {
-					this.lastState.jumpToIndex = 0;
-					this.lastState.position = 'top';
+					this.untrackedState.jumpToIndex = 0;
+					this.untrackedState.position = 'top';
 				} else if (this.props.atBottom) {
-					this.lastState.jumpToIndex = this.props.children.length - 1;
-					this.lastState.position = 'bottom';
+					this.untrackedState.jumpToIndex = this.props.children.length - 1;
+					this.untrackedState.position = 'bottom';
 				} else {
-					this.lastState.jumpToIndex = 0;
-					this.lastState.position = buildReactElement(this.props.children[0]).key;
+					this.untrackedState.jumpToIndex = 0;
+					this.untrackedState.position = buildReactElement(this.props.children[0]).key;
 				}
 			}
 
 			if (this.props.position) {
-				this.lastState.position = this.props.position;
+				this.untrackedState.position = this.props.position;
 			}
 
 			return {
@@ -172,19 +172,19 @@
 				return;
 			}
 
-			if (this.lastState.jumpRequired && this.lastState.position) {
-				if (this.lastState.position === 'top') {
+			if (this.untrackedState.jumpRequired && this.untrackedState.position) {
+				if (this.untrackedState.position === 'top') {
 					this.setScroll(-9E99);
 				//	this.scrollTo(0, 0);
 					jumped = true;
-				} else if (this.lastState.position === 'bottom') {
+				} else if (this.untrackedState.position === 'bottom') {
 					this.setScroll(9E99);
 				//	this.scrollTo(items.length - 1, this.getBottom(itemEls[itemEls.length-1]) - this.getTop(itemEls[itemEls.length-1]));
 					jumped = true;
 				} else {
 					for (i = 0; i < items.length; i++) {
-						if (items[i].key === this.lastState.position) {
-							this.scrollTo(i, this.lastState.offset);
+						if (items[i].key === this.untrackedState.position) {
+							this.scrollTo(i, this.untrackedState.offset);
 							jumped = true;
 							break;
 						}
@@ -196,7 +196,7 @@
 								  "This usually happens when scrolling down very fast.");
 				}
 
-				this.lastState.jumpRequired = false;
+				this.untrackedState.jumpRequired = false;
 
 				this.afid = requestAnimationFrame(this.update);
 
@@ -207,7 +207,7 @@
 				viewHeight = this.getViewportHeight(),
 				viewBottom = viewTop + viewHeight,
 				elBottom = React.findDOMNode(this).scrollHeight, // Get the total height of the scroll viewport
-				last = this.lastState,
+				last = this.untrackedState,
 				position, offset, above, below, itemHeight, top, columns;
 
 			// Calculate the number of columns by comparing the top offset values
@@ -291,7 +291,7 @@
 		},
 
 		onResize: function() {
-			this.lastState.jumpRequired = true;
+			this.untrackedState.jumpRequired = true;
 		},
 
 		componentDidMount: function() {
@@ -319,10 +319,10 @@
 
 		componentWillReceiveProps: function(nextProps) {
 
-			if (nextProps.position && nextProps.position !== this.lastState.position) {
-				this.lastState.position = nextProps.position;
-				this.lastState.offset = 0;
-				this.lastState.jumpRequiredAfterUpdate = true;
+			if (nextProps.position && nextProps.position !== this.untrackedState.position) {
+				this.untrackedState.position = nextProps.position;
+				this.untrackedState.offset = 0;
+				this.untrackedState.jumpRequiredAfterUpdate = true;
 //				console.debug('Received a position property that will cause a jump');
 			}
 
@@ -335,7 +335,7 @@
 		},
 
 		componentDidUpdate: function(prevProps) {
-//			if (this.lastState.jumpToIndex !== null) return;
+//			if (this.untrackedState.jumpToIndex !== null) return;
 
 			var prevItems = prevProps.items.map(buildReactElement),
 				items = this.props.children.map(buildReactElement),
@@ -410,16 +410,16 @@
 			if(
 				items[0].key !== prevItems[0].key ||
 				!prevProps.topReached && this.props.atTop ||
-				this.lastState.position === 'bottom' ||
-				this.lastState.jumpRequiredAfterUpdate
+				this.untrackedState.position === 'bottom' ||
+				this.untrackedState.jumpRequiredAfterUpdate
 			) {
-//				console.debug("Scheduled a jump to", this.lastState.position,
+//				console.debug("Scheduled a jump to", this.untrackedState.position,
 //					items[0].key != prevItems[0].key? 'topItemChanged': '',
 //					!prevProps.topReached && this.props.atTop? 'justReachedTop': '',
-//					this.lastState.jumpRequiredAfterUpdate? 'positionInProp': ''
+//					this.untrackedState.jumpRequiredAfterUpdate? 'positionInProp': ''
 //				);
-				this.lastState.jumpRequired = true;
-				delete this.lastState.jumpRequiredAfterUpdate;
+				this.untrackedState.jumpRequired = true;
+				delete this.untrackedState.jumpRequiredAfterUpdate;
 			}
 		},
 
