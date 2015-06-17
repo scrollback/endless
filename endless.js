@@ -3,9 +3,9 @@
 	Based on ReactList (https://github.com/orgsync/react-list)
 */
 
-/* jshint browser: true */
-/* global define, module */
-/* jshint -W116 */ // Don't warn about single-line if's.
+/* eslint-env browser, amd */
+
+"use strict";
 
 (function(root, factory) {
 	if (typeof define === 'function' && define.amd) {
@@ -70,7 +70,7 @@
 				onUnmount: function() {}
 			};
 		},
-
+		
 		getInitialState: function() {
 			this.lastState = this.lastState ||  { jumpRequired: true, offset: 0 };
 
@@ -115,6 +115,7 @@
 			if (this.lastState.jumpRequired && this.lastState.position) {
 				if (this.lastState.position == 'top') {
 					this.setScroll(-9E99);
+					// this is the reason for a bug
 				//	this.scrollTo(0, 0);
 					jumped = true;
 				} else if (this.lastState.position == 'bottom') {
@@ -171,8 +172,7 @@
 				below = columns * Math.ceil(viewHeight / itemHeight);
 			} else {
 				for (i = 0; i < itemEls.length; i++) {
-					offset = itemEls[i].offsetTop + itemEls[i].scrollHeight - viewTop;
-					if (offset > 0) {
+					if (itemEls[i].offsetTop + itemEls[i].scrollHeight - viewTop > 0) {
 						offset = viewTop - itemEls[i].offsetTop;
 						break;
 					}
@@ -394,7 +394,8 @@
 				}],
 				['div', {
 					ref: 'items'
-				}].concat(this.props.items), ['div', {
+				}].concat(this.props.items),
+				['div', {
 					style: {
 						clear: 'both',
 						height: this.state.bottomRemoved + (this.state.bottomReached ? 0 : this.props.margin)
