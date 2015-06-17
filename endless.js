@@ -3,6 +3,10 @@
 	Based on ReactList (https://github.com/orgsync/react-list)
 */
 
+/* eslint-env browser, amd */
+
+"use strict";
+
 (function(root, factory) {
 	if (typeof define === 'function' && define.amd) {
 		define(['react'], factory);
@@ -128,7 +132,7 @@
 				onUnmount: function() {}
 			};
 		},
-
+		
 		getInitialState: function() {
 			this.untrackedState = this.untrackedState ||  { jumpRequired: true, offset: 0 };
 
@@ -175,6 +179,7 @@
 			if (this.untrackedState.jumpRequired && this.untrackedState.position) {
 				if (this.untrackedState.position === 'top') {
 					this.setScroll(-9E99);
+					// this is the reason for a bug
 				//	this.scrollTo(0, 0);
 					jumped = true;
 				} else if (this.untrackedState.position === 'bottom') {
