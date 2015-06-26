@@ -3,10 +3,6 @@
 	Based on ReactList (https://github.com/orgsync/react-list)
 */
 
-/* eslint-env browser, amd */
-
-"use strict";
-
 (function(root, factory) {
 	if (typeof define === 'function' && define.amd) {
 		define(['react'], factory);
@@ -104,16 +100,6 @@
 		}
 	};
 
-	var isEqualSubset = function(a, b) {
-		for (var key in a)
-			if (b[key] !== a[key]) return false;
-		return true;
-	};
-
-	var isEqual = function(a, b) {
-		return isEqualSubset(a, b) && isEqualSubset(b, a);
-	};
-
 	var getComputedValue = function (el, propName) {
 		var value = parseFloat(window.getComputedStyle(el)[propName]);
 		if(isNaN(value)) value = 0;
@@ -123,317 +109,403 @@
 	return React.createClass({
 		getDefaultProps: function() {
 			return {
-				items: [],
-				margin: 2000,
+				margin: 200,
 				atTop: false,
 				atBottom: false,
-				onScroll: function( /* key, above, below */ ) {},
-				onMount: function( /* event */ ) {},
-				onUnmount: function() {}
+				onScroll: function ( /* key, above, below */ ) {},
+				onPrev: function () {},
+				onNext: function () {},
+				onMount: function ( /* event */ ) {},
+				onUnmount: function () {}
 			};
 		},
 		
-		getInitialState: function() {
-			this.untrackedState = this.untrackedState ||  { jumpRequired: true, offset: 0 };
+		resetPrivState: function (props) {
+			this.pState.topReached = props.atTop;
+			this.pState.bottomReached = props.atBottom;
+			this.pState.spaceAbove = props.atTop? 0: this.props.margin;
+			this.pState.spaceBelow = props.atBottom? 0: this.props.margin;
+			
+			console.log("Set space", this.pState.spaceAbove, props.atTop, this.pState.spaceBelow, props.atBottom);
+			
+			this.pState.topItemKey = props.atTop? null : undefined;
+			this.pState.bottomItemKey = props.atBottom? null : undefined;
+			
+			console.log("Set keys", this.pState.topItemKey, props.atTop, this.pState.bottomItemKey, props.atBottom);
 
-			if (this.props.children.length) {
-				if (this.props.atTop) {
-					this.untrackedState.jumpToIndex = 0;
-					this.untrackedState.position = 'top';
-				} else if (this.props.atBottom) {
-					this.untrackedState.jumpToIndex = this.props.children.length - 1;
-					this.untrackedState.position = 'bottom';
-				} else {
-					this.untrackedState.jumpToIndex = 0;
-					this.untrackedState.position = buildReactElement(this.props.children[0]).key;
-				}
-			}
-
-			if (this.props.position) {
-				this.untrackedState.position = this.props.position;
-			}
-
-			return {
-				itemHeight: 25,
-				columns: 1,
-				topReached: this.props.atTop,
-				bottomReached: this.props.atBottom,
-				topRemoved: 0,
-				bottomRemoved: 0
-			};
+			
+			console.log("Reset priv state", this.pState, props);
 		},
+		
+		getInitialState: function() {
+			this.pState = this.pState ||  {
+				itemHeight: 25,
+				columns: 1
+			};
+			
+			this.resetPrivState(this.props);
+			
+			return {};
+		},
+/*
+//		update: function() {
+//			var items = this.props.children,
+//				itemsEl = React.findDOMNode(this.refs.items),
+//				itemEls = itemsEl.children,
+//				jumped = false, i;
+//
+//			if (!itemEls.length) {
+//				// There are no items yet, delay the next update a little
+//				this.stid = setTimeout(this.update, 200);
+//
+//				return;
+//			}
+//
+//			if (this.pState.jumpRequired && this.pState.position) {
+//				if (this.pState.position === 'top') {
+//					this.setScroll(-9E99);
+//					// this is the reason for a bug
+//				//	this.scrollTo(0, 0);
+//					jumped = true;
+//				} else if (this.pState.position === 'bottom') {
+//					this.setScroll(9E99);
+//				//	this.scrollTo(items.length - 1, this.getBottom(itemEls[itemEls.length-1]) - this.getTop(itemEls[itemEls.length-1]));
+//					jumped = true;
+//				} else {
+//					for (i = 0; i < items.length; i++) {
+//						if (items[i].key === this.pState.position) {
+//							this.scrollTo(i, this.pState.offset);
+//							jumped = true;
+//							break;
+//						}
+//					}
+//				}
+//
+//				if (!jumped) {
+//					console.error("Endless Error: Jump was required but it did not happen. " +
+//								  "This usually happens when scrolling down very fast.");
+//				}
+//
+//				this.pState.jumpRequired = false;
+//
+//				this.afid = requestAnimationFrame(this.update);
+//
+//				return;
+//			}
+//		Code moved to onScroll
+//		},
+*/
 
-		update: function() {
-			var items = this.props.children,
-				itemsEl = React.findDOMNode(this.refs.items),
-				itemEls = itemsEl.children,
-				jumped = false, i;
+		onResize: function() {
+			this.componentDidUpdate();
+		},
+		
+		onScroll: function () {
+			var metrics = this.metrics,
+				pState = this.pState,
+				count = metrics.length,
+				i, topItemKey, bottomItemKey,
+				topOffset = 0, bottomOffset = 0;
 
-			if (!itemEls.length) {
-				// There are no items yet, delay the next update a little
-				this.stid = setTimeout(this.update, 200);
-
-				return;
-			}
-
-			if (this.untrackedState.jumpRequired && this.untrackedState.position) {
-				if (this.untrackedState.position === 'top') {
-					this.setScroll(-9E99);
-					// this is the reason for a bug
-				//	this.scrollTo(0, 0);
-					jumped = true;
-				} else if (this.untrackedState.position === 'bottom') {
-					this.setScroll(9E99);
-				//	this.scrollTo(items.length - 1, this.getBottom(itemEls[itemEls.length-1]) - this.getTop(itemEls[itemEls.length-1]));
-					jumped = true;
-				} else {
-					for (i = 0; i < items.length; i++) {
-						if (items[i].key === this.untrackedState.position) {
-							this.scrollTo(i, this.untrackedState.offset);
-							jumped = true;
-							break;
-						}
-					}
-				}
-
-				if (!jumped) {
-					console.error("Endless Error: Jump was required but it did not happen. " +
-								  "This usually happens when scrolling down very fast.");
-				}
-
-				this.untrackedState.jumpRequired = false;
-
-				this.afid = requestAnimationFrame(this.update);
-
-				return;
-			}
-
+			if (!count) { return; }
+			
 			var viewTop = this.getScroll(), // Get scroll position of the scroll parent
 				viewHeight = this.getViewportHeight(),
 				viewBottom = viewTop + viewHeight,
-				elBottom = React.findDOMNode(this).scrollHeight, // Get the total height of the scroll viewport
-				last = this.untrackedState,
-				position, offset, above, below, itemHeight, top, columns;
-
-			// Calculate the number of columns by comparing the top offset values
-			top = this.getTop(itemEls[0]);
-
-			columns = 1;
-
-			while (columns < itemEls.length && this.getTop(itemEls[columns]) === top) {
-				columns++;
-			}
-
-			// Get average height of the items
-			itemHeight = (this.getBottom(itemEls[itemEls.length - 1]) - top) / itemEls.length;
-
-			if (itemHeight <= 0) { itemHeight = 20; } // Ugly hack for handling display:none items.
-
-			itemHeight *= columns;
-
-			if (this.state.bottomReached && !this.state.bottomRemoved && viewBottom >= elBottom - 4) {
+				
+				itemsTop = metrics[0].top,
+				itemsBottom = metrics[count - 1].bottom,
+				
+				itemHeight = this.pState.itemHeight,
+				columns = this.pState.columns,
+				above, below;
+			
+			if (
+				this.pState.bottomReached &&
+				!this.pState.spaceBelow &&
+				viewBottom >= itemsBottom - 4
+			) {
 				// The viewport has scrolled to bottom
-				position = 'bottom';
-				offset = 0;
-				above = columns * Math.ceil(viewHeight / itemHeight);
+				bottomItemKey = null;
+				bottomOffset = 0;
 				below = 0;
-			} else if (this.state.topReached && !this.state.topRemoved && viewTop <= 4) {
+			} 
+			
+			if (
+				this.pState.topReached &&
+				!this.pState.spaceAbove &&
+				viewTop <= itemsTop + 4
+			) {
 				// The viewport has scrolled to top
-				position = 'top';
-				offset = 0;
+				topItemKey = null;
+				topOffset = 0;
 				above = 0;
-				below = columns * Math.ceil(viewHeight / itemHeight);
-			} else {
-				for (i = 0; i < itemEls.length; i++) {
-					offset = itemEls[i].offsetTop + itemEls[i].scrollHeight - viewTop; // Distance of the element from the top of the viewport
-
-					if (offset > 0) {
+			} 
+			
+			if (typeof topItemKey === "undefined") {
+				for (i = 0; i < count; i++) {
+					if (metrics[i].bottom > viewTop) {
 						// Element is visible in the viewport
-						offset = viewTop - itemEls[i].offsetTop;
+						topOffset = viewTop - metrics[i].top;
 						break;
 					}
 				}
+				
+				if (i === count) { i--; } // Everything's above viewport, pick last one.
+				topItemKey = metrics[i].key; // Building in case it is JSONML
 
-				if (i === itemEls.length) { i--; } // All the items are above the viewport, pick last one.
-
-				position = buildReactElement(items[i]).key; // Building in case it is JSONML
-
-				if (viewTop < itemEls[0].offsetTop) {
-					// Space at top is less than space above first element
-					// Means there are items above the top of the view
-					offset = viewTop - itemEls[0].offsetTop;
-					above = columns * Math.ceil(-offset / itemHeight);
+				if (topOffset < 0) {
+					// There is empty space in the viewport.
+					// Communicate this with a negative itemsAboveView.
+					above = columns * Math.floor(topOffset / itemHeight);
 				} else {
-					// No items above the top of the view
-					above = 0;
+					above = i;
 				}
+			}
+			
+			if (typeof bottomItemKey === "undefined") {
+				for (i = count - 1; i >= 0; i--) {
+					if (metrics[i].top < viewBottom) {
+						// Element is visible in the viewport
+						bottomOffset = metrics[i].bottom - viewBottom;
+						break;
+					}
+				}
+				if (i === -1) { i++; }
+				bottomItemKey = metrics[i].key; // Building in case it is JSONML
 
-				below = Math.max(0, columns * Math.ceil(Math.max(
-					viewHeight, (viewBottom - itemEls[itemEls.length-1].offsetTop)
-				) / itemHeight) - above); // Number of items below the bottom of the view
+				if (bottomOffset < 0) {
+					// There is empty space in the viewport.
+					// Communicate this with a negative itemsBelowView.
+					below = columns * Math.floor(bottomOffset / itemHeight);
+				} else {
+					below = count - 1 - i;
+				}
+			}
+			
+//			console.log("Scroll happened! " + this.getScroll() + " " + this.getMetrics()[0].top);
+			
+			if (
+				pState.topItemKey !== topItemKey ||
+				pState.bottomItemKey !== bottomItemKey ||
+				pState.above < above ||
+				pState.below < below
+			) {
+				console.log("Updating pState due to scroll", this.ignoreScroll);
+				
+				if(pState.topItemKey === null && topItemKey !== null) {
+					console.log("topItemKey is no longer null its", topItemKey);
+//					debugger;
+				}
+				
+				if(pState.bottomItemKey === null && bottomItemKey !== null) {
+					console.log("bottomItemKey is no longer null its", bottomItemKey);
+//					debugger;
+				}
+				
+				pState.topItemKey = topItemKey;
+				pState.bottomItemKey = bottomItemKey;
+				pState.above = above;
+				pState.below = below;
+				
+				if(!this.ignoreScroll) this.props.onScroll({
+					topItemKey: topItemKey,
+					bottomItemKey: bottomItemKey,
+					
+					itemsAboveView: above,
+					itemsBelowView: below,
+					itemsInView: count - above - below
+				}); else this.ignoreScroll = false;
 			}
 
-			above = Math.round(above);
-			below = Math.round(below);
-
-			if (last.position !== position || last.above < above || last.below < below) {
-
-				// console.debug("Position changed to", position, above, below);
-
-				last.position = position;
-				last.offset = offset;
-				last.above = above;
-				last.below = below;
-
-				this.afid = requestAnimationFrame(this.update);
-				this.props.onScroll(position, above, below);
-			} else if (last.offset !== offset) {
-				last.offset = offset;
-				this.afid = requestAnimationFrame(this.update);
-			} else {
-				this.stid = setTimeout(this.update, 200);
-			}
-		},
-
-		onResize: function() {
-			this.untrackedState.jumpRequired = true;
+			
 		},
 
 		componentDidMount: function() {
-			this.update();
-
+			this.componentDidUpdate();
+			
 			addResizeListener(this.getScrollParent(), this.onResize);
-
+			this.getScrollParent().addEventListener("scroll", this.onScroll);
+			
 			this.props.onMount();
 		},
 
 		componentWillUnmount: function() {
 			cancelAnimationFrame(this.afid);
+			clearTimeout(this.stid);
 
 			removeResizeListener(this.getScrollParent(), this.onResize);
-
-			clearTimeout(this.stid);
+			this.getScrollParent().removeEventListener("scroll", this.onScroll);
 
 			this.props.onUnmount();
 		},
-
-		shouldComponentUpdate: function(props, state) {
-			if (isEqual(this.props, props) && isEqual(this.state, state)) return false;
-			return true;
+		
+		updateKeys: function() {
+			var i;
+			this.keys = {};
+			for(i=0; i < this.metrics.length; i++) {
+				this.keys[this.metrics[i].key] = true;
+			}
 		},
-
-		componentWillReceiveProps: function(nextProps) {
-
-			if (nextProps.position && nextProps.position !== this.untrackedState.position) {
-				this.untrackedState.position = nextProps.position;
-				this.untrackedState.offset = 0;
-				this.untrackedState.jumpRequiredAfterUpdate = true;
-//				console.debug('Received a position property that will cause a jump');
+		
+		updateGeometry: function () {
+			var metrics = this.metrics, count = metrics.length,
+				top, itemHeight, columns;
+			
+			// Calculate the number of columns by comparing the top offset values
+			top = metrics[0].top;
+			columns = 1;
+			while (columns < count && metrics[columns].top === top) {
+				columns++;
 			}
 
-			this.setState({
-				topReached: this.state.topReached || nextProps.atTop,
-				bottomReached: this.state.bottomReached || nextProps.atBottom,
-				topRemoved: nextProps.atTop? 0: Math.max(10, this.state.topRemoved),
-				bottomRemoved: nextProps.atBottom? 0: Math.max(10, this.state.bottomRemoved)
-			});
+			// Get average height of the items
+			itemHeight = (this.metrics[count - 1].bottom - top) / count;
+			if (itemHeight <= 0) { itemHeight = 20; } // Ugly hack for handling display:none items.
+			itemHeight *= columns;
+			
+			this.pState.columns = columns;
+			this.pState.itemHeight = itemHeight;
 		},
-
-		componentDidUpdate: function(prevProps) {
-//			if (this.untrackedState.jumpToIndex !== null) return;
-
-			var prevItems = prevProps.items.map(buildReactElement),
-				items = this.props.children.map(buildReactElement),
-				metrics, prevMetrics = this.metrics, i,
-				topAdded, topRemoved, bottomAdded, bottomRemoved;
-
-			if (!items.length || !prevItems.length) return;
-
-			// Calculate the new metrics (tops and bottoms of each element)
-			metrics = [].slice.call(React.findDOMNode(this.refs.items).children).map(function(itemEl) {
+		
+		getMetrics: function () {
+			var items = this.props.children.map(buildReactElement);
+			
+			return Array.prototype.slice.call(
+				React.findDOMNode(this.refs.items).children
+			).map(function(itemEl, i) {
 				return {
+					key: items[i].key,
+					reactElement: items[i],
+					domElement: itemEl,
 					top: this.getTop(itemEl),
 					bottom: this.getBottom(itemEl)
 				};
 			}.bind(this));
+		},
 
-			if (prevMetrics && prevMetrics.length !== prevItems.length) {
-				console.error("Endless Error: prevMetrics.length ≠ prevItems.length. " +
-							  "Did you modify the items array after calling setProps?", prevMetrics.length, prevItems.length);
+		componentWillReceiveProps: function(nextProps) {
+			var unanchored = true, k, i;
+			
+			for(i in nextProps.children) {
+				k = buildReactElement(nextProps.children[i]).key;
+				if(this.keys[k]) unanchored = false;
 			}
-
-			if (metrics && prevMetrics && items.length && prevItems.length) {
-				// Check how many items were added at the beggining of the data set
-				i = 0;
-
-				while (i < items.length && items[i].key !== prevItems[0].key) {
-					i++;
-				}
-
-				topAdded = (i === items.length) ? 0 : metrics[i].top - metrics[0].top;
-
-				// Check how many items were removed from the start of the data set
-				i = 0;
-
-				while (i < prevItems.length && prevItems[i].key !== items[0].key) {
-					i++;
-				}
-
-				topRemoved = (i === prevItems.length) ? 0 : prevMetrics[i].top - prevMetrics[0].top;
-
-
-				// Check how many items were added at the end of the data set
-				i = items.length - 1;
-
-				while (i >= 0 && items[i].key !== prevItems[prevItems.length - 1].key) {
-					i--;
-				}
-
-				bottomAdded = (i < 0) ? 0 : metrics[metrics.length - 1].bottom - metrics[i].bottom;
-
-
-				// Cehck how many items were removed from the end of the data set
-				i = prevItems.length - 1;
-
-				while (i >= 0 && prevItems[i].key !== items[items.length - 1].key) {
-					i--;
-				}
-
-				bottomRemoved = (i < 0) ? 0 : prevMetrics[prevMetrics.length - 1].bottom - prevMetrics[i].bottom;
-
-				// Set the state with the new values, so our view gets updated
-				this.setState({
-					topRemoved: Math.max(0, this.state.topRemoved + topRemoved - topAdded),
-					bottomRemoved: Math.max(0, this.state.bottomRemoved + bottomRemoved - bottomAdded)
-				});
+			
+			if(unanchored) {
+				this.resetPrivState(nextProps);
+			} else {
+				this.pState.topReached = this.pState.topReached || nextProps.atTop;
+				this.pState.bottomReached = this.pState.bottomReached || nextProps.atBottom;
 			}
-
-			//	console.log('Rendered', items[0].key, 'through', items[items.length-1].key,
-			//				'Removed space ', this.state.topRemoved, this.state.bottomRemoved);
-			this.metrics = metrics;
-
-			if(
-				items[0].key !== prevItems[0].key ||
-				!prevProps.topReached && this.props.atTop ||
-				this.untrackedState.position === 'bottom' ||
-				this.untrackedState.jumpRequiredAfterUpdate
-			) {
-//				console.debug("Scheduled a jump to", this.untrackedState.position,
-//					items[0].key != prevItems[0].key? 'topItemChanged': '',
-//					!prevProps.topReached && this.props.atTop? 'justReachedTop': '',
-//					this.untrackedState.jumpRequiredAfterUpdate? 'positionInProp': ''
-//				);
-				this.untrackedState.jumpRequired = true;
-				delete this.untrackedState.jumpRequiredAfterUpdate;
+			
+			this.pState.scroll = this.getScroll();
+		},
+		
+		componentDidUpdate: function() {
+			function getTopOffset(mets, key) {
+				var i = 0;
+				while (i < mets.length && mets[i].key !== key) { i++; }
+				return (i === mets.length) ? 0 : mets[i].top - mets[0].top;
 			}
+			
+			function getBottomOffset(mets, key) {
+				var i = mets.length - 1;
+				while (i >= 0 && mets[i].key !== key) { i--; }
+				return (i < 0) ? 0 : mets[mets.length - 1].bottom - mets[i].bottom;
+			}
+			
+			var metrics, prevMetrics = this.metrics, j,
+				topAdded, topRemoved, bottomAdded, bottomRemoved;
+
+			// Calculate the new metrics. Note that this includes the effect
+			// of any padding added by the render function.
+			metrics = this.getMetrics();
+			
+			if(typeof this.pState.scroll === "undefined") this.pState.scroll = this.getScroll();
+			
+//			console.log(metrics, prevMetrics, metrics.length, prevMetrics.length);
+
+			if (metrics && prevMetrics && metrics.length && prevMetrics.length) {
+				
+				topAdded = getTopOffset(metrics, prevMetrics[0].key);
+				topRemoved = getTopOffset(prevMetrics, metrics[0].key);
+				
+				bottomAdded = getBottomOffset(metrics, prevMetrics[prevMetrics.length - 1].key);
+				bottomRemoved = getBottomOffset(prevMetrics, metrics[metrics.length - 1].key);
+				
+				var spaceAbove = Math.max(
+						this.pState.spaceAbove - topAdded + topRemoved,
+						this.pState.topReached ? 0 : this.props.margin
+					),
+					spaceBelow = Math.max(
+						this.pState.spaceBelow - bottomAdded + bottomRemoved,
+						this.pState.bottomReached ? 0 : this.props.margin
+					),
+					scrollTo = this.pState.scroll + spaceAbove - 
+						(this.pState.spaceAbove - topAdded + topRemoved);
+
+
+//				console.log('Rendered', metrics[0].key, 'through', metrics[metrics.length-1].key,
+//							':', this.pState.spaceAbove, this.pState.spaceBelow,
+//							'+', topRemoved, bottomRemoved,
+//							'-', topAdded, bottomAdded,
+//							'=', spaceAbove, spaceBelow,
+//							'^', scrollTo);				
+				
+				React.findDOMNode(this.refs.above).style.height = (spaceAbove + "px");
+				React.findDOMNode(this.refs.below).style.height = (spaceBelow + "px");
+				
+				this.pState.spaceAbove = spaceAbove;
+				this.pState.spaceBelow = spaceBelow;
+			} else {
+				React.findDOMNode(this.refs.above).style.height = (this.pState.spaceAbove + "px");
+				React.findDOMNode(this.refs.below).style.height = (this.pState.spaceBelow + "px");
+			}
+			
+			this.metrics = metrics = this.getMetrics();
+			this.updateGeometry();
+			this.updateKeys();
+			
+//			if(typeof this.pState.scroll === "undefined") this.pState.scroll = this.getScroll();
+			
+			if(this.pState.topItemKey === null) {
+				scrollTo = Math.min(0, scrollTo || 0);
+				console.log("jump set to ", scrollTo, "because topItemKey is null");
+			} else if(this.pState.bottomItemKey === null) {
+				scrollTo = Math.max(
+					scrollTo || 0,
+					this.getBottom(React.findDOMNode(this.refs.below)) -
+					this.getViewportHeight()
+				);
+				console.log("jump set to ", scrollTo, "because bottomItemKey is null");
+			} else if(typeof scrollTo === "undefined") {
+				scrollTo = metrics[0].top;
+				console.log("jump set to ", scrollTo, "at init, from", this.getScroll(), "item", metrics[0].key);
+			}
+			
+//			console.log(scrollTo, this.pState.scroll);
+			
+			if(Math.abs(scrollTo - this.pState.scroll) > 4) {
+//				this.ignoreScroll = true;
+				console.log("jumping to", scrollTo, "from", this.pState.scroll);
+				this.setScroll(scrollTo);
+			}
+			
+//			if(this.unanchored) this.onScroll();
+//			this.jump = null;
 		},
 
 		getTop: function(el) {
-			return el.getBoundingClientRect().top - getComputedValue(el, 'marginTop');
+			return el.getBoundingClientRect().top - 
+				getComputedValue(el, 'marginTop') -
+				React.findDOMNode(this).getBoundingClientRect().top;
 		},
 
 		getBottom: function(el) {
-			return el.getBoundingClientRect().bottom + getComputedValue(el, 'marginBottom');
+			return el.getBoundingClientRect().bottom +
+				getComputedValue(el, 'marginBottom') -
+				React.findDOMNode(this).getBoundingClientRect().top;
 		},
 
 		getScrollParent: function() {
@@ -459,15 +531,14 @@
 				return -el.getBoundingClientRect().top;
 			} else {
 				return scrollParent.getBoundingClientRect().top -
-					el.getBoundingClientRect().top + getComputedValue(scrollParent, 'borderTop');
+					el.getBoundingClientRect().top +
+					getComputedValue(scrollParent, 'borderTop');
 			}
 		},
 
 		setScroll: function(y) {
 			var scrollParent = this.getScrollParent(),
 				el = React.findDOMNode(this);
-
-//			console.debug('setScroll called with ', y);
 
 			if (scrollParent !== el) {
 				y += (scrollParent.scrollTop -
@@ -476,10 +547,8 @@
 					getComputedValue(scrollParent, 'borderTop')));
 			}
 			y = Math.min(scrollParent.scrollHeight, Math.max(0, y));
-			if (scrollParent === window) return window.scrollTo(0, y);
-//			console.debug('About to scroll', scrollParent, y);
-			scrollParent.scrollTop = y;
-//			console.debug('After scroll', scrollParent.scrollHeight, scrollParent.scrollTop, scrollParent.clientHeight);
+			if (scrollParent === window) window.scrollTo(0, y);
+			else scrollParent.scrollTop = y;
 		},
 
 		getViewportHeight: function() {
@@ -501,18 +570,25 @@
 			return buildReactElement(['div', {
 					style: { position: 'relative' }
 				},
-				['div', {
-					style: { height: this.state.topRemoved + (this.state.topReached ? 0 : this.props.margin) }
-				}],
+				['div',
+					{ ref: 'above', style: {
+						position: 'relative',
+						height: (this.pState.spaceAbove + 1000)
+					} }
+				],
 				['div', {
 					ref: 'items'
 				}].concat(this.props.children),
-				['div', {
-					style: {
+				['div',
+					{ ref: 'below', style: {
 						clear: 'both',
-						height: this.state.bottomRemoved + (this.state.bottomReached ? 0 : this.props.margin)
-					}
-				}]
+						position: 'relative',
+						height: (this.pState.spaceBelow + 1000)
+						/* temporarily adds extra space to avoid jumps
+						   when the total height of all items decreased
+						   during the update */
+					} }
+				]
 			]);
 		}
 	});

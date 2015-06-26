@@ -6,34 +6,76 @@
 		<style>
 			html, body { font: normal 100 13px/18px Lato; margin: 0; padding: 0; height: 100%; }
 			.item {
-				width: 100%;
+				width: 50%;
 				font-size: 3em;
 				line-height: 1em;
-				box-sizing: border-box;
+/*				box-sizing: border-box;*/
 				/* padding: 2em; */
 				white-space: nowrap;
 				text-overflow: ellipsis;
-				background: #33ccaa;
-				/*margin: 0 0 0 2%;*/
-				border: 1px solid #fff;
+				background: #ccc;
+				margin: 0 25%;
+/*				border-bottom: 1px solid #fff;*/
 				float: left;
 				text-align: center;
 			}
+			
+			.item.alternate { background: #eeeeee; }
 			.container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: auto; }
 			p, h1, h2 { clear: both; text-align: center; padding: 5em 0;}
+			
+			.fab {
+				position: absolute;
+				font-size: 24px;
+				left: 50%;
+				width: 2em;
+				margin-left: -1em;
+				background: #36c;
+				line-height: 2em;
+				border-radius: 1em;
+				text-align: center;
+				color: #fff;
+				font-weight: bold;
+				cursor: pointer;
+				box-shadow: 0 4px 24px 0px rgba(0,0,0,0.5);
+				transition: all 0.5s;
+			}
+			
+			.fab:hover {
+				background: #69f;
+			}
+			
+			.scroll-up { top: 2em; }
+			.scroll-down { bottom: 2em; }
+			
 		</style>
 	</head>
 	<body>
 		<div class="container">
-			<h1>There are some items below.</h1>
+			<h1 onclick="prev">There are some items below.</h1>
 			<div id="app" class="post-ctnr"></div>
-			<h2>There were some items above</h2>
+			<h2 onclick="next">There were some items above</h2>
 		</div>
+		
+		<a class="fab scroll-up">⬆</a>
+		<a class="fab scroll-down">⬇</a>
 		
 		<script src="bower_components/react/react.min.js"></script>
 		<script src="endless.js"></script>
 		<script>
-			function getItem(i) { return ['div', {className: 'item', style: {lineHeight: (Math.abs(i)%7+1) + 'em'}, key: i}, i<0?'('+(-i)+')': i]; }
+			var start = -100, end = -80;
+
+			function getItem(i) {
+				return ['div', 
+					{ className: 'item ' + (i%2?"alternate":""),
+					  style: {
+						  lineHeight: (Math.abs(i*11)%7 + Math.abs(i) / 100 + 1) + 'em'
+					  },
+					  key: i
+					},
+					i
+				];
+			}
 			
 			function getItems(start, end) {
 				var i, r=[];
@@ -41,45 +83,75 @@
 				return r;
 			}
 			
-			function onScroll(key, above, below) {
-				if(key == 'bottom') key = 100;
-				else if (key == 'top') key = -100;
-				else key = parseFloat(key);
+			function onScroll(event) {
+				start = Math.floor(event.topItemKey?
+					parseInt(event.topItemKey) - 10 -
+					Math.min(10, Math.max(0, -event.itemsAboveView)) : -100
+				),
+				end = Math.ceil(event.bottomItemKey?
+					parseInt(event.bottomItemKey) + 10 +
+					Math.min(10, Math.max(0, -event.itemsBelowView)) : 100
+				);
 				
-				var start = Math.floor((key - above - 5)/20)*20,
-					end = Math.ceil((key + below + 5)/20)*20;
+				if (typeof event.topItemKey === "undefined") {
+					start = end - event.itemsInView - 10;
+				}
+				
+				if (typeof event.bottomItemKey === "undefined") {
+					end = start + event.itemsInView + 10;
+				}
 				
 				start = Math.max(-100, Math.min(100, start));
 				end = Math.max(-100, Math.min(100, end));
 				
-				console.log('Rendering', key, above, below, start, end);
 				
-				render({
-					items: getItems(start, end),
-					onScroll: onScroll,
-					atTop: (key - above < -100)? true: false,
-					atBottom: (key + below > 100)? true: false
-				})
+				setTimeout(function () {
+					console.log('scroll', event.topItemKey, event.itemsAboveView,  event.bottomItemKey, event.itemsBelowView, event.itemsInView, "=>", start, end);
+					render();
+				}, 10);
 			}
 			
-			function render(props, callback) {
+			function render(props) {
+				props = props || {};
+				props.children = getItems(start, end);
+				props.onScroll = onScroll;
+				props.atTop = (start <= -100)? true: false;
+				props.atBottom = (end >= 100)? true: false;
+				
 				React.render(
 					React.createElement(Endless, props),
-					document.getElementById('app'),
-					callback
+					document.getElementById('app')
 				);
 			}
 			
+			
+			document.querySelectorAll(".scroll-up")[0].onclick = function () {
+				start = -100; end = -80;
+				render();
+			}
+			
+			document.querySelectorAll(".scroll-down")[0].onclick = function () {
+				start = 80;
+				end = 100;
+				render();
+			}
+			
+			
 //			window.scrollTo(0, 999999);
 			
-			render({
-				items: getItems(-100, 50),
-				onScroll: onScroll,
-				atTop: true,
-				atBottom: false
-			}, function () {
-				window.scrollTo(0, 0);
-			});
+			function next() { moveAndRender(10); }
+			
+			function prev() { moveAndRender(-10); }
+			
+			
+			function moveAndRender(amount) {
+				start = Math.max(-100, Math.min(100, start + amount));
+				end = start + 20;
+				
+				render();
+			}
+			
+			moveAndRender(0);
 			
 		</script>
 	</body>

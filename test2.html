@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Endless Tester</title>
+		<style>
+			html, body { font: normal 100 13px/18px Lato; margin: 0; padding: 0; height: 100%; }
+			.container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: auto; }
+			.canary { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #eee; }
+			p, h1, h2 { clear: both; text-align: center; padding: 5em 0;}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<object class="canary" type="text/html" data="about:blank"></object>
+		</div>
+		<script>
+			var canary = document.querySelectorAll(".canary")[0];
+			canary.contentDocument.defaultView.addEventListener("resize", function (event) {
+				console.log("Canary resize event", event);
+			});
+		
+		</script>
+	</body>
+</html>
+
