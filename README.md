@@ -1,7 +1,7 @@
 endless
 =======
 
-A simple, fast and versatile infinite scroll component for React.
+A simple, versatile and fast infinite scroll component for React.
 
 Supports:
 - Removal and recycling of DOM elements
