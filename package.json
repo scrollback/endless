@@ -1,0 +1,32 @@
+{
+  "name": "endless",
+  "version": "0.9.12",
+  "homepage": "https://github.com/scrollback/endless",
+  "description": "A simple, fast and versatile infinite scroll component for React.",
+  "main": "endless.js",
+  "keywords": [
+    "infinite scroll react"
+  ],
+  "dependencies": {
+    "react": "x"
+  },
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scrollback/endless.git"
+  },
+  "author": "aravind <aravindet@gmail.com>",
+  "bugs": {
+    "url": "https://github.com/scrollback/endless/issues"
+  }
+}
