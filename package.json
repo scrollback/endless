@@ -8,7 +8,8 @@
     "infinite scroll react"
   ],
   "dependencies": {
-    "react": "x"
+    "react": "x",
+    "react-dom": "x"
   },
   "license": "MIT",
   "ignore": [
