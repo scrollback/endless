@@ -7,6 +7,8 @@
 /* global define, module */
 /* jshint -W116 */ // Don't warn about single-line if's.
 
+const ReactDOM = require('react-dom');
+
 (function(root, factory) {
 	if (typeof define === 'function' && define.amd) {
 		define(['react'], factory);
@@ -103,7 +105,7 @@
 
 		update: function() {
 			var items = this.props.items,
-				itemsEl = this.refs.items.getDOMNode(),
+				itemsEl = ReactDOM.findDOMNode(this.refs.items),
 				itemEls = itemsEl.children,
 				jumped = false;
 
@@ -147,7 +149,7 @@
 			var viewTop = this.getScroll(),
 				viewHeight = this.getViewportHeight(),
 				viewBottom = viewTop + viewHeight,
-				elBottom = this.getDOMNode().scrollHeight,
+				elBottom = ReactDOM.findDOMNode(this).scrollHeight,
 				last = this.lastState,
 				position, i, offset, above, below, itemHeight, top, columns;
 
@@ -263,7 +265,7 @@
 			if (!items.length || !prevItems.length) return;
 
 			// Calculate the new metrics (tops and bottoms of each element)
-			metrics = [].slice.call(this.refs.items.getDOMNode().children).map(function(itemEl) {
+			metrics = [].slice.call(ReactDOM.findDOMNode(this.refs.items).children).map(function(itemEl) {
 				return {
 					top: this.getTop(itemEl),
 					bottom: this.getBottom(itemEl)
@@ -323,7 +325,7 @@
 		},
 
 		getScrollParent: function() {
-			for (var el = this.getDOMNode(); el; el = el.parentElement) {
+			for (var el = ReactDOM.findDOMNode(this); el; el = el.parentElement) {
 				var overflowY = window.getComputedStyle(el).overflowY;
 				if (overflowY === 'auto' || overflowY === 'scroll') {
 					return el;
@@ -335,7 +337,7 @@
 		// Get scroll position relative to the top of the list.
 		getScroll: function() {
 			var scrollParent = this.getScrollParent(),
-				el = this.getDOMNode();
+				el = ReactDOM.findDOMNode(this);
 
 			if (scrollParent === el) {
 				return el.scrollTop;
@@ -349,7 +351,7 @@
 
 		setScroll: function(y) {
 			var scrollParent = this.getScrollParent(),
-				el = this.getDOMNode();
+				el = ReactDOM.findDOMNode(this);
 
 //			console.debug('setScroll called with ', y);
 
@@ -372,11 +374,11 @@
 		},
 
 		scrollTo: function(index, offset) {
-			var y = this.refs.items.getDOMNode().children[index].offsetTop + offset;
+			var y = ReactDOM.findDOMNode(this.refs.items).children[index].offsetTop + offset;
 
 			//	console.log(
 			//		"scrolling from", this.getScroll(), "to",
-			//		this.refs.items.getDOMNode().children[index].offsetTop, offset
+			//		ReactDOM.findDOMNode(this).children[index].offsetTop, offset
 			//	);
 			this.setScroll(y);
 		},
